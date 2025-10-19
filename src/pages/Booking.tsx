@@ -15,6 +15,7 @@ const Booking = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [hasAcceptedRules, setHasAcceptedRules] = useState(false);
   const [step, setStep] = useState(1);
   const [dishes, setDishes] = useState<{ name: string; quantity: number }[]>([{ name: '', quantity: 1 }]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -27,6 +28,11 @@ const Booking = () => {
       navigate('/auth');
     }
   }, [user, authLoading, navigate]);
+
+  useEffect(() => {
+    const rulesAccepted = sessionStorage.getItem('huki_rules_accepted');
+    setHasAcceptedRules(rulesAccepted === 'true');
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -57,6 +63,27 @@ const Booking = () => {
   const totalTrays = dishes.reduce((sum, dish) => sum + (dish.quantity || 0), 0);
 
   const renderStepContent = () => {
+    if (!hasAcceptedRules) {
+      return (
+        <div className="bg-card p-6 rounded-lg shadow-lg">
+          <h2 className="text-2xl font-bold text-foreground mb-4 text-center">
+            Review and Accept Booking Rules
+          </h2>
+          <p className="text-foreground mb-4 text-center">
+            Please review and accept the terms before starting your booking.
+          </p>
+          <div className="flex justify-center">
+            <Button
+              onClick={() => navigate('/welcome')}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              Review Terms & Conditions
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
     switch (step) {
       case 1:
         return (

@@ -14,11 +14,40 @@ export type Database = {
   }
   public: {
     Tables: {
+      blocked_trays: {
+        Row: {
+          blocked_by: string | null
+          created_at: string
+          date: string
+          id: string
+          reason: string | null
+          tray_numbers: number[]
+        }
+        Insert: {
+          blocked_by?: string | null
+          created_at?: string
+          date: string
+          id?: string
+          reason?: string | null
+          tray_numbers: number[]
+        }
+        Update: {
+          blocked_by?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          reason?: string | null
+          tray_numbers?: number[]
+        }
+        Relationships: []
+      }
       bookings: {
         Row: {
+          applied_credit_amount: number | null
           booking_date: string
           created_at: string
           dehydration_cost: number
+          delivery_method: string | null
           dishes: Json
           id: string
           num_packets: number
@@ -26,6 +55,7 @@ export type Database = {
           payment_status: string
           razorpay_order_id: string | null
           razorpay_payment_id: string | null
+          status: string | null
           total_cost: number
           total_trays: number
           tray_numbers: number[]
@@ -33,9 +63,11 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          applied_credit_amount?: number | null
           booking_date: string
           created_at?: string
           dehydration_cost: number
+          delivery_method?: string | null
           dishes: Json
           id?: string
           num_packets?: number
@@ -43,6 +75,7 @@ export type Database = {
           payment_status?: string
           razorpay_order_id?: string | null
           razorpay_payment_id?: string | null
+          status?: string | null
           total_cost: number
           total_trays: number
           tray_numbers: number[]
@@ -50,9 +83,11 @@ export type Database = {
           user_id: string
         }
         Update: {
+          applied_credit_amount?: number | null
           booking_date?: string
           created_at?: string
           dehydration_cost?: number
+          delivery_method?: string | null
           dishes?: Json
           id?: string
           num_packets?: number
@@ -60,11 +95,87 @@ export type Database = {
           payment_status?: string
           razorpay_order_id?: string | null
           razorpay_payment_id?: string | null
+          status?: string | null
           total_cost?: number
           total_trays?: number
           tray_numbers?: number[]
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      cancellation_credits: {
+        Row: {
+          created_at: string
+          credit_amount: number
+          expiry_date: string
+          id: string
+          original_booking_id: string | null
+          used: boolean | null
+          used_in_booking_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credit_amount: number
+          expiry_date: string
+          id?: string
+          original_booking_id?: string | null
+          used?: boolean | null
+          used_in_booking_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          credit_amount?: number
+          expiry_date?: string
+          id?: string
+          original_booking_id?: string | null
+          used?: boolean | null
+          used_in_booking_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cancellation_credits_original_booking_id_fkey"
+            columns: ["original_booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cancellation_credits_used_in_booking_id_fkey"
+            columns: ["used_in_booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_logs: {
+        Row: {
+          content: string | null
+          id: string
+          notification_type: string
+          recipient: string
+          sent_at: string
+          status: string | null
+        }
+        Insert: {
+          content?: string | null
+          id?: string
+          notification_type: string
+          recipient: string
+          sent_at?: string
+          status?: string | null
+        }
+        Update: {
+          content?: string | null
+          id?: string
+          notification_type?: string
+          recipient?: string
+          sent_at?: string
+          status?: string | null
         }
         Relationships: []
       }
@@ -75,6 +186,7 @@ export type Database = {
           full_name: string
           id: string
           mobile_number: string
+          payment_required: boolean | null
           updated_at: string
         }
         Insert: {
@@ -83,6 +195,7 @@ export type Database = {
           full_name: string
           id: string
           mobile_number: string
+          payment_required?: boolean | null
           updated_at?: string
         }
         Update: {
@@ -91,6 +204,7 @@ export type Database = {
           full_name?: string
           id?: string
           mobile_number?: string
+          payment_required?: boolean | null
           updated_at?: string
         }
         Relationships: []

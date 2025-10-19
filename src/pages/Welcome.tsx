@@ -5,13 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 
 const rules = [
-  'One item, up to one litre, in one tray',
-  'Minimum quantity per item is one litre (even if less than 1L, still counts as 1 tray)',
+  'One item, up to one litre, in one tray (minimum quantity per item is one litre)',
   'All orders accepted at 1 PM daily',
   'Saturday Special: Minimum 6 trays required unless 6+ trays already booked. Saturday deliveries: Monday.',
   'Only vegetarian food accepted',
   'If sending paneer, we recommend using our freeze-dried paneer; homemade paneer may crumble',
   'Operations only within Bengaluru',
+  'Self deliveries and self pick-ups: Customers are responsible for delivery/pickup logistics unless otherwise arranged',
 ];
 
 const Welcome = () => {
@@ -26,6 +26,7 @@ const Welcome = () => {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
       return () => clearTimeout(timer);
     } else if (countdown === 0 && allChecked) {
+      sessionStorage.setItem('huki_rules_accepted', 'true');
       navigate('/booking');
     }
   }, [countdown, allChecked, navigate]);
@@ -73,7 +74,11 @@ const Welcome = () => {
           </p>
           
           <Button
-            onClick={() => navigate('/booking')}
+            onClick={() => {
+              // Set flag in sessionStorage and navigate
+              sessionStorage.setItem('huki_rules_accepted', 'true');
+              navigate('/booking');
+            }}
             disabled={!allChecked}
             className="bg-primary text-primary-foreground hover:bg-primary/90"
           >

@@ -5,6 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 
 const Profile = () => {
@@ -12,6 +14,8 @@ const Profile = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [bookings, setBookings] = useState<any[]>([]);
+  const [credits, setCredits] = useState<any[]>([]);
+  const [cancelDialog, setCancelDialog] = useState<{ open: boolean; booking: any }>({ open: false, booking: null });
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -23,6 +27,7 @@ const Profile = () => {
     if (user) {
       fetchProfile();
       fetchBookings();
+      fetchCredits();
     }
   }, [user]);
 
@@ -55,6 +60,63 @@ const Profile = () => {
 
     setBookings(data || []);
   };
+
+  const fetchCredits = async () => {
+    const { data } = await supabase
+      .from('cancellation_credits')
+      .select('*')
+      .eq('user_id', user?.id)
+      .eq('used', false)
+      .gte('expiry_date', new Date().toISOString().split('T')[0]);
+
+    setCredits(data || []);
+  };
+
+  const handleCancelBooking = async () => {
+    const booking = cancelDialog.booking;
+    if (!booking) return;
+
+    try {
+      // Update booking status
+      const { error: updateError } = await supabase
+        .from('bookings')
+        .update({ status: 'cancelled' })
+        .eq('id', booking.id);
+
+      if (updateError) {
+        toast.error('Failed to cancel booking');
+        return;
+      }
+
+      // Create credit (50% of total cost)
+      const creditAmount = Math.round(booking.total_cost * 0.5);
+      const expiryDate = new Date();
+      expiryDate.setMonth(expiryDate.getMonth() + 6);
+
+      const { error: creditError } = await supabase
+        .from('cancellation_credits')
+        .insert({
+          user_id: user!.id,
+          original_booking_id: booking.id,
+          credit_amount: creditAmount,
+          expiry_date: expiryDate.toISOString().split('T')[0],
+        });
+
+      if (creditError) {
+        console.error('Failed to create credit:', creditError);
+      }
+
+      toast.success(`Booking cancelled. ₹${creditAmount} credit available for 6 months.`);
+      setCancelDialog({ open: false, booking: null });
+      fetchBookings();
+      fetchCredits();
+    } catch (error) {
+      console.error('Cancellation error:', error);
+      toast.error('Failed to cancel booking');
+    }
+  };
+
+  const totalAvailableCredit = credits.reduce((sum, credit) => sum + Number(credit.credit_amount), 0);
 
   if (authLoading || !user) {
     return (
@@ -98,53 +160,112 @@ const Profile = () => {
           </Card>
         )}
 
+        {totalAvailableCredit > 0 && (
+          <Card className="p-6 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-lg font-semibold text-foreground mb-1">Available Credit</h3>
+                <p className="text-3xl font-bold text-green-600 dark:text-green-400">₹{totalAvailableCredit}</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  {credits.length} credit{credits.length > 1 ? 's' : ''} available
+                </p>
+              </div>
+              <Badge className="bg-green-500 text-white">Valid for 6 months</Badge>
+            </div>
+          </Card>
+        )}
+
         <Card className="p-6">
           <h2 className="text-2xl font-bold text-foreground mb-4">My Bookings</h2>
           {bookings.length === 0 ? (
             <p className="text-muted-foreground">No bookings yet</p>
           ) : (
             <div className="space-y-4">
-              {bookings.map((booking) => (
-                <div
-                  key={booking.id}
-                  className="border border-border rounded-md p-4"
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <p className="font-semibold text-foreground">
-                        {new Date(booking.booking_date).toLocaleDateString('en-IN', {
-                          weekday: 'long',
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Trays: {booking.tray_numbers.join(', ')}
-                      </p>
+              {bookings.map((booking) => {
+                const isUpcoming = new Date(booking.booking_date) >= new Date();
+                const isCancellable = isUpcoming && booking.payment_status === 'completed' && booking.status === 'active';
+
+                return (
+                  <div
+                    key={booking.id}
+                    className={`border rounded-md p-4 ${
+                      booking.status === 'cancelled' ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800' : 'border-border'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <p className="font-semibold text-foreground">
+                          {new Date(booking.booking_date).toLocaleDateString('en-IN', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Trays: {booking.tray_numbers.join(', ')}
+                        </p>
+                      </div>
+                      <div className="flex gap-2 items-center">
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                            booking.status === 'cancelled'
+                              ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                              : booking.payment_status === 'completed'
+                              ? 'bg-green-100 text-green-800'
+                              : booking.payment_status === 'pending'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-red-100 text-red-800'
+                          }`}
+                        >
+                          {booking.status === 'cancelled' ? 'Cancelled' : booking.payment_status}
+                        </span>
+                      </div>
                     </div>
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        booking.payment_status === 'completed'
-                          ? 'bg-green-100 text-green-800'
-                          : booking.payment_status === 'pending'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      {booking.payment_status}
-                    </span>
+                    <div className="text-sm text-foreground space-y-1">
+                      <p><strong>Total Trays:</strong> {booking.total_trays}</p>
+                      <p><strong>Total Cost:</strong> ₹{booking.total_cost}</p>
+                      {booking.delivery_method && (
+                        <p><strong>Delivery Method:</strong> {booking.delivery_method.replace('_', ' ')}</p>
+                      )}
+                    </div>
+                    {isCancellable && (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="mt-3"
+                        onClick={() => setCancelDialog({ open: true, booking })}
+                      >
+                        Cancel Booking
+                      </Button>
+                    )}
                   </div>
-                  <div className="text-sm text-foreground space-y-1">
-                    <p><strong>Total Trays:</strong> {booking.total_trays}</p>
-                    <p><strong>Total Cost:</strong> ₹{booking.total_cost}</p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </Card>
       </div>
+
+      <AlertDialog open={cancelDialog.open} onOpenChange={(open) => setCancelDialog({ open, booking: null })}>
+        <AlertDialogContent className="bg-background">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-foreground">Cancel Booking?</AlertDialogTitle>
+            <AlertDialogDescription className="text-foreground">
+              Are you sure you want to cancel this booking? 50% of ₹{cancelDialog.booking?.total_cost || 0} (₹{Math.round((cancelDialog.booking?.total_cost || 0) * 0.5)}) will be credited for use within 6 months.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep Booking</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancelBooking}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Yes, Cancel
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

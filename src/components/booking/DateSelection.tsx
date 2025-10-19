@@ -37,7 +37,8 @@ export const DateSelection = ({
     const { data, error } = await supabase
       .from('bookings')
       .select('*')
-      .eq('payment_status', 'completed');
+      .eq('payment_status', 'completed')
+      .eq('status', 'active');
 
     if (error) {
       console.error('Error fetching bookings:', error);
@@ -47,13 +48,25 @@ export const DateSelection = ({
     setBookings(data || []);
   };
 
-  const getBookedTraysForDate = (date: Date): number[] => {
+  const getBookedTraysForDate = async (date: Date): Promise<number[]> => {
     const dateStr = formatDate(date);
+    
+    // Get booked trays from bookings
     const dayBookings = bookings.filter(b => b.booking_date === dateStr);
-    return dayBookings.flatMap(b => b.tray_numbers);
+    const bookedFromBookings = dayBookings.flatMap(b => b.tray_numbers);
+    
+    // Get blocked trays
+    const { data: blockedTrays } = await supabase
+      .from('blocked_trays')
+      .select('*')
+      .eq('date', dateStr);
+    
+    const blockedTrayNumbers = blockedTrays?.flatMap(b => b.tray_numbers) || [];
+    
+    return [...bookedFromBookings, ...blockedTrayNumbers];
   };
 
-  const handleDateSelect = (date: Date | undefined) => {
+  const handleDateSelect = async (date: Date | undefined) => {
     if (!date) return;
 
     if (isDateBlocked(date)) {
@@ -61,7 +74,7 @@ export const DateSelection = ({
       return;
     }
 
-    const bookedTrays = getBookedTraysForDate(date);
+    const bookedTrays = await getBookedTraysForDate(date);
     const availableCount = TRAY_CAPACITY - bookedTrays.length;
 
     if (isSaturday(date)) {
