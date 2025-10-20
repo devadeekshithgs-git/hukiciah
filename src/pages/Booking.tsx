@@ -90,6 +90,8 @@ const Booking = () => {
           <DishSelection
             dishes={dishes}
             setDishes={setDishes}
+            numPackets={numPackets}
+            setNumPackets={setNumPackets}
             onNext={() => setStep(2)}
           />
         );
@@ -111,8 +113,10 @@ const Booking = () => {
             allocatedTrays={allocatedTrays}
             bookedTrays={bookedTraysForDate}
             selectedDate={selectedDate}
+            totalTraysNeeded={totalTrays}
             onNext={() => setStep(4)}
             onBack={() => setStep(2)}
+            setAllocatedTrays={setAllocatedTrays}
           />
         );
       case 4:
@@ -120,7 +124,6 @@ const Booking = () => {
           <PackingCosts
             totalTrays={totalTrays}
             numPackets={numPackets}
-            setNumPackets={setNumPackets}
             dishes={dishes}
             selectedDate={selectedDate}
             allocatedTrays={allocatedTrays}

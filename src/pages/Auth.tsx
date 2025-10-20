@@ -18,7 +18,7 @@ const signupSchema = z.object({
 });
 
 const Auth = () => {
-  const [isSignup, setIsSignup] = useState(false);
+  const [isSignup, setIsSignup] = useState(true);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
@@ -29,7 +29,7 @@ const Auth = () => {
 
   useEffect(() => {
     if (user) {
-      navigate('/');
+      navigate('/welcome');
     }
   }, [user, navigate]);
 
@@ -86,7 +86,7 @@ const Auth = () => {
       return;
     }
 
-    navigate('/');
+    navigate('/welcome');
   };
 
   return (
@@ -167,14 +167,29 @@ const Auth = () => {
           </Button>
         </form>
 
-        <div className="mt-4 text-center">
-          <button
+        <div className="mt-6 flex flex-col gap-2">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">Or</span>
+            </div>
+          </div>
+          <Button
             type="button"
-            onClick={() => setIsSignup(!isSignup)}
-            className="text-primary hover:underline text-sm"
+            variant="outline"
+            onClick={() => {
+              setIsSignup(!isSignup);
+              setFullName('');
+              setEmail('');
+              setMobileNumber('');
+              setPassword('');
+            }}
+            className="w-full"
           >
-            {isSignup ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
-          </button>
+            {isSignup ? 'Sign In Instead' : 'Create New Account'}
+          </Button>
         </div>
       </div>
     </div>

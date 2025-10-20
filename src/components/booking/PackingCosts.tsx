@@ -16,7 +16,6 @@ import { DeliveryMethodDialog } from './DeliveryMethodDialog';
 interface PackingCostsProps {
   totalTrays: number;
   numPackets: number;
-  setNumPackets: (n: number) => void;
   dishes: { name: string; quantity: number }[];
   selectedDate: Date | null;
   allocatedTrays: number[];
@@ -26,7 +25,6 @@ interface PackingCostsProps {
 export const PackingCosts = ({
   totalTrays,
   numPackets,
-  setNumPackets,
   dishes,
   selectedDate,
   allocatedTrays,
@@ -322,20 +320,6 @@ export const PackingCosts = ({
                 <span className="font-bold text-primary">₹{Math.max(0, totalCost)}</span>
               </div>
             </div>
-          </div>
-
-          <div>
-            <Label htmlFor="packets">Number of Packets for Packing</Label>
-            <Input
-              id="packets"
-              type="number"
-              min="0"
-              value={numPackets}
-              onChange={(e) => setNumPackets(Number(e.target.value))}
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Packing cost: ₹{PACKING_COST_PER_PACKET} per packet
-            </p>
           </div>
         </div>
 

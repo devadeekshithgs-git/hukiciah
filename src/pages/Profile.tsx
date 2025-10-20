@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { BookingDetailsDialog } from '@/components/booking/BookingDetailsDialog';
+import { ChevronDown, ChevronUp, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Profile = () => {
@@ -16,6 +18,8 @@ const Profile = () => {
   const [bookings, setBookings] = useState<any[]>([]);
   const [credits, setCredits] = useState<any[]>([]);
   const [cancelDialog, setCancelDialog] = useState<{ open: boolean; booking: any }>({ open: false, booking: null });
+  const [detailsDialog, setDetailsDialog] = useState<{ open: boolean; booking: any }>({ open: false, booking: null });
+  const [expandedBooking, setExpandedBooking] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -193,7 +197,7 @@ const Profile = () => {
                     }`}
                   >
                     <div className="flex justify-between items-start mb-2">
-                      <div>
+                      <div className="flex-1">
                         <p className="font-semibold text-foreground">
                           {new Date(booking.booking_date).toLocaleDateString('en-IN', {
                             weekday: 'long',
@@ -203,7 +207,9 @@ const Profile = () => {
                           })}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          Trays: {booking.tray_numbers.join(', ')}
+                          Trays: {booking.tray_numbers && booking.tray_numbers.length > 0 
+                            ? booking.tray_numbers.join(', ') 
+                            : 'Not assigned'}
                         </p>
                       </div>
                       <div className="flex gap-2 items-center">
@@ -222,6 +228,7 @@ const Profile = () => {
                         </span>
                       </div>
                     </div>
+                    
                     <div className="text-sm text-foreground space-y-1">
                       <p><strong>Total Trays:</strong> {booking.total_trays}</p>
                       <p><strong>Total Cost:</strong> ₹{booking.total_cost}</p>
@@ -229,16 +236,65 @@ const Profile = () => {
                         <p><strong>Delivery Method:</strong> {booking.delivery_method.replace('_', ' ')}</p>
                       )}
                     </div>
-                    {isCancellable && (
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        className="mt-3"
-                        onClick={() => setCancelDialog({ open: true, booking })}
-                      >
-                        Cancel Booking
-                      </Button>
+
+                    {/* Expandable Details */}
+                    {expandedBooking === booking.id && (
+                      <div className="mt-3 pt-3 border-t border-border space-y-2 text-sm">
+                        <p className="text-muted-foreground">
+                          <strong>Order Progress:</strong> {booking.status === 'cancelled' ? 'Cancelled' : isUpcoming ? 'Confirmed - Awaiting Processing' : 'Completed'}
+                        </p>
+                        {booking.dishes && Array.isArray(booking.dishes) && (
+                          <div>
+                            <strong className="text-foreground">Dishes:</strong>
+                            <ul className="ml-4 mt-1">
+                              {booking.dishes.map((dish: any, idx: number) => (
+                                <li key={idx} className="text-muted-foreground">
+                                  {dish.name} - {dish.quantity} tray(s)
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
                     )}
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2 mt-3 flex-wrap">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setExpandedBooking(expandedBooking === booking.id ? null : booking.id)}
+                      >
+                        {expandedBooking === booking.id ? (
+                          <>
+                            <ChevronUp className="h-4 w-4 mr-1" />
+                            Hide Details
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="h-4 w-4 mr-1" />
+                            Show Details
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setDetailsDialog({ open: true, booking })}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        Full Details
+                      </Button>
+                      {isCancellable && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => setCancelDialog({ open: true, booking })}
+                        >
+                          Cancel Booking
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -266,6 +322,12 @@ const Profile = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <BookingDetailsDialog
+        open={detailsDialog.open}
+        onOpenChange={(open) => setDetailsDialog({ open, booking: null })}
+        booking={detailsDialog.booking}
+      />
     </div>
   );
 };

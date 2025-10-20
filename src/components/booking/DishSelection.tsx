@@ -7,10 +7,12 @@ import { toast } from 'sonner';
 interface DishSelectionProps {
   dishes: { name: string; quantity: number }[];
   setDishes: (dishes: { name: string; quantity: number }[]) => void;
+  numPackets: number;
+  setNumPackets: (num: number) => void;
   onNext: () => void;
 }
 
-export const DishSelection = ({ dishes, setDishes, onNext }: DishSelectionProps) => {
+export const DishSelection = ({ dishes, setDishes, numPackets, setNumPackets, onNext }: DishSelectionProps) => {
   const totalTrays = dishes.reduce((sum, dish) => sum + (dish.quantity || 0), 0);
 
   const addDish = () => {
@@ -119,6 +121,29 @@ export const DishSelection = ({ dishes, setDishes, onNext }: DishSelectionProps)
         </Button>
         <div className="text-lg font-semibold text-foreground">
           Total Trays: {totalTrays} / 24
+        </div>
+      </div>
+
+      {/* Packing Information */}
+      <div className="mb-6 p-4 bg-accent/30 rounded-md space-y-4">
+        <div>
+          <Label htmlFor="numPackets" className="text-foreground font-semibold">
+            Number of Packets for Packing
+          </Label>
+          <p className="text-xs text-muted-foreground mb-2">
+            After dehydration, the items will be reduced to powder. How many packets do you need?
+          </p>
+          <Input
+            id="numPackets"
+            type="number"
+            min="0"
+            value={numPackets}
+            onChange={(e) => setNumPackets(Number(e.target.value))}
+            placeholder="Enter number of packets"
+          />
+          <p className="text-xs text-muted-foreground mt-2">
+            Cost: ₹50 per packet
+          </p>
         </div>
       </div>
 
