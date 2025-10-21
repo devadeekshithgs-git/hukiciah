@@ -28,9 +28,30 @@ const Auth = () => {
   const { user } = useAuth();
 
   useEffect(() => {
-    if (user) {
-      navigate('/welcome');
-    }
+    const checkUserRole = async () => {
+      if (user) {
+        try {
+          const { data, error } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', user.id)
+            .single();
+
+          if (error) throw error;
+
+          if (data?.role === 'admin') {
+            navigate('/admin');
+          } else {
+            navigate('/welcome');
+          }
+        } catch (error) {
+          console.error('Error checking user role:', error);
+          navigate('/welcome');
+        }
+      }
+    };
+
+    checkUserRole();
   }, [user, navigate]);
 
   const handleSignup = async (e: React.FormEvent) => {

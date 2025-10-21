@@ -20,14 +20,37 @@
 - [x] Add "View Details" expandable section in bookings
 - [x] Ensure "Cancel Order" button is visible with proper rules
 - [x] Add booking details dialog with full information
+- [x] **Admin Dashboard System**
+  - Role-based authentication (admin/customer roles)
+  - Admin dashboard with three tabs (Dashboard, Bookings, Calendar)
+  - View all bookings with customer details
+  - Calendar configuration management
+  - Holiday marking and date notices
+  - Blocked tray management
+  - Auto-redirect based on user role after login
 
 ## 🔄 In Progress / To Be Tested
 
-### 1. Notifications
+### 1. Admin Role Assignment
+- [ ] **IMPORTANT**: Manually assign admin role to your user account
+- Use this SQL in the backend database:
+```sql
+INSERT INTO user_roles (user_id, role) 
+VALUES ('your-user-id-here', 'admin');
+```
+- Replace 'your-user-id-here' with your actual user ID from auth.users table
+
+### 2. Customer App Integration with Admin Calendar
+- [ ] Fetch calendar_config data before showing booking dates
+- [ ] Block holiday dates from selection
+- [ ] Display admin notices for dates
+- [ ] Respect blocked trays when allocating/selecting trays
+
+### 3. Notifications
 - [x] Daily appointment reminder edge function (needs production testing)
 - [ ] Verify email delivery for appointment reminders
 
-### 2. Calendar UI (Future Enhancement)
+### 4. Calendar UI (Future Enhancement)
 - [ ] Show notifications as color-conditional formatted dates in calendar
 - [ ] Replace side pop-up messages with full-screen notification dialogs
 
@@ -44,6 +67,18 @@
 - Order progress tracking shows status (Confirmed/Awaiting Processing/Completed)
 - Cancellation with 50% credit working as expected
 - Daily reminder emails scheduled (edge function created)
+- **Admin Dashboard**: Same login system, role-based redirect (admin → /admin, customer → /welcome)
+- **Next Step**: Assign admin role to your account to access the admin dashboard
+
+## 🔐 How to Access Admin Dashboard
+1. Sign up/login normally with your account
+2. Run this SQL in your backend to make yourself an admin:
+```sql
+INSERT INTO user_roles (user_id, role) 
+VALUES ('your-user-id-from-auth-users', 'admin');
+```
+3. Log out and log back in
+4. You'll be automatically redirected to /admin
 
 ---
-Last Updated: 2025-10-20
+Last Updated: 2025-10-21
