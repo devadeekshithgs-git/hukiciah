@@ -75,7 +75,7 @@ export const DishSelection = ({ dishes, setDishes, numPackets, setNumPackets, on
         </p>
         <ul className="text-sm text-foreground space-y-1 list-disc list-inside">
           <li>One item per tray, up to one litre</li>
-          <li>Only one variety per tray</li>
+          <li>Only one variety per tray. For example, Idly and Chutney will be 2 trays and 1.</li>
           <li>Minimum quantity per item is one litre (even if less, counts as 1 tray)</li>
           <li>Packets are determined by the quantity you order. For example, 1 liter can be divided into either five 200-gram packets or four 250-gram packets, depending on your requirements.</li>
         </ul>
@@ -84,13 +84,13 @@ export const DishSelection = ({ dishes, setDishes, numPackets, setNumPackets, on
       <div className="space-y-4 mb-6">
         {dishes.map((dish, index) => (
           <div key={index} className="flex gap-4 items-end">
-            <div className="flex-1 max-w-md">
+            <div className="flex-1">
               <Label htmlFor={`dish-${index}`}>Dish Name</Label>
               <Input
                 id={`dish-${index}`}
                 value={dish.name}
                 onChange={(e) => updateDish(index, 'name', e.target.value)}
-                placeholder="e.g., Paneer, Bhindi, Carrot"
+                placeholder="e.g., Paneer Gravy, Fried rice, Idly, Chutney"
               />
             </div>
             <div className="w-32">
@@ -102,7 +102,6 @@ export const DishSelection = ({ dishes, setDishes, numPackets, setNumPackets, on
                 max="24"
                 value={dish.quantity}
                 onChange={(e) => updateDish(index, 'quantity', e.target.value)}
-                placeholder="1"
               />
             </div>
             <Button
@@ -128,7 +127,7 @@ export const DishSelection = ({ dishes, setDishes, numPackets, setNumPackets, on
           Add Another Dish
         </Button>
         <div className="text-lg font-semibold text-foreground">
-          Total Trays: {totalTrays} / 24 | Packets: {numPackets}
+          Total Trays: {totalTrays} / 24
         </div>
       </div>
 
