@@ -29,7 +29,9 @@ export const CancellationPolicyDialog = ({
         <DialogHeader>
           <DialogTitle className="text-foreground text-xl">Cancellation Policy</DialogTitle>
           <DialogDescription className="text-foreground text-base pt-4">
-            In case you need to cancel this booking, 50% of the payment (₹{creditAmount}) can be used as credit for your next order within 6 months.
+            <strong>Important:</strong> If you choose to cancel this booking, 50% of your payment (₹{creditAmount}) can be used towards your next order within 6 months. 
+            <br/><br/>
+            <strong className="text-destructive">Please note:</strong> The remaining 50% will not be refunded. No cash refunds will be issued for any cancellations.
           </DialogDescription>
         </DialogHeader>
         

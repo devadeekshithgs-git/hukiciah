@@ -299,14 +299,26 @@ export const PackingCosts = ({
 
         <div className="mb-6 space-y-4">
           <div className="p-4 bg-accent/30 rounded-md">
-            <h3 className="font-semibold text-foreground mb-2">Cost Breakdown</h3>
+            <h3 className="font-semibold text-foreground mb-3">Order Summary</h3>
+            <div className="space-y-2 text-sm mb-4">
+              <div className="flex justify-between items-center">
+                <span className="text-foreground">Total Trays: <strong>{totalTrays}</strong> | Packets: <strong>{numPackets}</strong></span>
+              </div>
+              <div className="text-xs text-muted-foreground p-2 bg-background/50 rounded border border-border">
+                <strong>About Packets:</strong> Packets are determined by the quantity you order. 
+                For example, 1 liter can be divided into either five 200-gram packets or four 250-gram packets, 
+                depending on your requirements.
+              </div>
+            </div>
+            
+            <h3 className="font-semibold text-foreground mb-2 mt-4">Cost Breakdown</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-foreground">Dehydration Cost ({totalTrays} trays):</span>
                 <span className="font-semibold text-foreground">₹{dehydrationCost}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-foreground">Packing Cost ({numPackets} packets):</span>
+                <span className="text-foreground">Packing Cost ({numPackets} packets @ ₹50 each):</span>
                 <span className="font-semibold text-foreground">₹{packingCost}</span>
               </div>
               {appliedCredit > 0 && (

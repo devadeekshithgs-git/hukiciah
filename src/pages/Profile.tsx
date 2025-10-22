@@ -307,8 +307,16 @@ const Profile = () => {
         <AlertDialogContent className="bg-background">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-foreground">Cancel Booking?</AlertDialogTitle>
-            <AlertDialogDescription className="text-foreground">
-              Are you sure you want to cancel this booking? 50% of ₹{cancelDialog.booking?.total_cost || 0} (₹{Math.round((cancelDialog.booking?.total_cost || 0) * 0.5)}) will be credited for use within 6 months.
+            <AlertDialogDescription className="text-foreground space-y-2">
+              <p>
+                If you cancel, <strong>50% of the amount</strong> (₹{Math.round((cancelDialog.booking?.total_cost || 0) * 0.5)}) can be used for your next order within 6 months.
+              </p>
+              <p className="text-destructive font-semibold">
+                Important: The remaining 50% will not be refunded. No cash refunds will be issued.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Total Booking Amount: ₹{cancelDialog.booking?.total_cost || 0}
+              </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -317,7 +325,7 @@ const Profile = () => {
               onClick={handleCancelBooking}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Yes, Cancel
+              Yes, Cancel Booking
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
