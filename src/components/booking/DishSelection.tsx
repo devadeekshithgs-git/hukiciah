@@ -84,7 +84,7 @@ export const DishSelection = ({ dishes, setDishes, numPackets, setNumPackets, on
       <div className="space-y-4 mb-6">
         {dishes.map((dish, index) => (
           <div key={index} className="flex gap-4 items-end">
-            <div className="flex-1">
+            <div className="flex-1 max-w-md">
               <Label htmlFor={`dish-${index}`}>Dish Name</Label>
               <Input
                 id={`dish-${index}`}
@@ -102,6 +102,7 @@ export const DishSelection = ({ dishes, setDishes, numPackets, setNumPackets, on
                 max="24"
                 value={dish.quantity}
                 onChange={(e) => updateDish(index, 'quantity', e.target.value)}
+                placeholder="1"
               />
             </div>
             <Button
@@ -127,7 +128,7 @@ export const DishSelection = ({ dishes, setDishes, numPackets, setNumPackets, on
           Add Another Dish
         </Button>
         <div className="text-lg font-semibold text-foreground">
-          Total Trays: {totalTrays} / 24
+          Total Trays: {totalTrays} / 24 | Packets: {numPackets}
         </div>
       </div>
 
