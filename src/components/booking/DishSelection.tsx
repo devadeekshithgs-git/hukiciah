@@ -16,10 +16,7 @@ interface DishSelectionProps {
 export const DishSelection = ({ dishes, setDishes, numPackets, setNumPackets, onNext }: DishSelectionProps) => {
   const totalTrays = dishes.reduce((sum, dish) => sum + (dish.quantity || 0), 0);
 
-  // Automatically set packets equal to trays
-  useEffect(() => {
-    setNumPackets(totalTrays);
-  }, [totalTrays, setNumPackets]);
+ 
 
   const addDish = () => {
     if (totalTrays >= 24) {
