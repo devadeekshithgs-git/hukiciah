@@ -318,7 +318,7 @@ export const PackingCosts = ({
                 <span className="font-semibold text-foreground">₹{dehydrationCost}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-foreground">Packing Cost ({numPackets} packets @ ₹50 each):</span>
+                <span className="text-foreground">Packing Cost ({numPackets} packets @ ₹10 each):</span>
                 <span className="font-semibold text-foreground">₹{packingCost}</span>
               </div>
               {appliedCredit > 0 && (

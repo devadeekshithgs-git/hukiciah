@@ -20,6 +20,6 @@ export const HOLIDAYS_2025 = [
 export const TRAY_CAPACITY = 24;
 export const TRAY_PRICE_LESS_THAN_6 = 350;
 export const TRAY_PRICE_6_OR_MORE = 300;
-export const PACKING_COST_PER_PACKET = 50;
+export const PACKING_COST_PER_PACKET = 10;
 export const ORDER_ACCEPTANCE_TIME = '13:00'; // 1 PM
 export const SATURDAY_MIN_TRAYS = 6;
