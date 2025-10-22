@@ -77,7 +77,7 @@ export const DishSelection = ({ dishes, setDishes, numPackets, setNumPackets, on
         </p>
         <ul className="text-sm text-foreground space-y-1 list-disc list-inside">
           <li>One item per tray, up to one litre</li>
-          <li>Only one variety per tray. For example, Idly and Chutney will be 2 trays and 1.</li>
+          <li>Only one variety per tray. For example, Idly and Chutney will be 2 trays and not 1.</li>
           <li>Minimum quantity per item is one litre (even if less, counts as 1 tray)</li>
           <li>Packets are determined by the quantity you order. For example, 1 liter can be divided into either five 200-gram packets or four 250-gram packets, depending on your requirements.</li>
         </ul>
@@ -107,7 +107,7 @@ export const DishSelection = ({ dishes, setDishes, numPackets, setNumPackets, on
                 placeholder="1"
               />
             </div>
-            <div className="w-40">
+            <div className="w-32">
               <Label htmlFor={`packets-${index}`} className="text-foreground font-semibold">
                 Packets
               </Label>
@@ -151,27 +151,7 @@ export const DishSelection = ({ dishes, setDishes, numPackets, setNumPackets, on
       </div>
 
       {/* Packing Information */}
-      <div className="mb-6 p-4 bg-accent/30 rounded-md space-y-4">
-        <div>
-          <Label htmlFor="numPackets" className="text-foreground font-semibold">
-            Number of Packets for Packing
-          </Label>
-          <p className="text-xs text-muted-foreground mb-2">
-            After dehydration, the items will be reduced to powder. How many packets do you need?
-          </p>
-          <Input
-            id="numPackets"
-            type="number"
-            min="0"
-            value={numPackets}
-            onChange={(e) => setNumPackets(Number(e.target.value))}
-            placeholder="Enter number of packets"
-          />
-          <p className="text-xs text-muted-foreground mt-2">
-            Cost: ₹10 per packet
-          </p>
-        </div>
-      </div>
+      
 
       <Button
         onClick={handleNext}
