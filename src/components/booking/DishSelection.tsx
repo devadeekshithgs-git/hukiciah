@@ -117,11 +117,9 @@ export const DishSelection = ({ dishes, setDishes, numPackets, setNumPackets, on
                 min="0"
                 value={dish.packets || ''}
                 onChange={(e) => updateDish(index, 'packets', e.target.value)}
-                placeholder="No. of packets"
+                placeholder="₹10 per packet"
               />
-              <p className="text-xs text-muted-foreground mt-1">
-                ₹10 per packet
-              </p>
+              
             </div>
             <Button
               variant="outline"
