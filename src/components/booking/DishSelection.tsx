@@ -112,7 +112,7 @@ export const DishSelection = ({ dishes, setDishes, numPackets, setNumPackets, on
                 id={`packets-${index}`}
                 type="number"
                 min="0"
-                value={dish.packets || ''}
+                value={dish.packets}
                 onChange={(e) => updateDish(index, 'packets', e.target.value)}
                 placeholder="₹10 per packet"
               />
