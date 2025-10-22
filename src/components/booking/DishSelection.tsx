@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +15,11 @@ interface DishSelectionProps {
 
 export const DishSelection = ({ dishes, setDishes, numPackets, setNumPackets, onNext }: DishSelectionProps) => {
   const totalTrays = dishes.reduce((sum, dish) => sum + (dish.quantity || 0), 0);
+
+  // Automatically set packets equal to trays
+  useEffect(() => {
+    setNumPackets(totalTrays);
+  }, [totalTrays, setNumPackets]);
 
   const addDish = () => {
     if (totalTrays >= 24) {
@@ -71,6 +77,7 @@ export const DishSelection = ({ dishes, setDishes, numPackets, setNumPackets, on
           <li>One item per tray, up to one litre</li>
           <li>Only one variety per tray</li>
           <li>Minimum quantity per item is one litre (even if less, counts as 1 tray)</li>
+          <li>Packets are determined by the quantity you order. For example, 1 liter can be divided into either five 200-gram packets or four 250-gram packets, depending on your requirements.</li>
         </ul>
       </div>
 
@@ -142,7 +149,7 @@ export const DishSelection = ({ dishes, setDishes, numPackets, setNumPackets, on
             placeholder="Enter number of packets"
           />
           <p className="text-xs text-muted-foreground mt-2">
-            Cost: ₹50 per packet
+            Cost: ₹10 per packet
           </p>
         </div>
       </div>
