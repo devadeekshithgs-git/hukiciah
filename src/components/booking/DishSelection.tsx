@@ -6,8 +6,8 @@ import { Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface DishSelectionProps {
-  dishes: { name: string; quantity: number }[];
-  setDishes: (dishes: { name: string; quantity: number }[]) => void;
+  dishes: { name: string; quantity: number; packets?: number }[];
+  setDishes: (dishes: { name: string; quantity: number; packets?: number }[]) => void;
   numPackets: number;
   setNumPackets: (num: number) => void;
   onNext: () => void;
@@ -37,7 +37,7 @@ export const DishSelection = ({ dishes, setDishes, numPackets, setNumPackets, on
     setDishes(dishes.filter((_, i) => i !== index));
   };
 
-  const updateDish = (index: number, field: 'name' | 'quantity', value: string | number) => {
+  const updateDish = (index: number, field: 'name' | 'quantity' | 'packets', value: string | number) => {
     const newDishes = [...dishes];
     if (field === 'quantity') {
       const qty = Number(value);
@@ -47,6 +47,8 @@ export const DishSelection = ({ dishes, setDishes, numPackets, setNumPackets, on
         return;
       }
       newDishes[index][field] = qty;
+    } else if (field === 'packets') {
+      newDishes[index][field] = Number(value);
     } else {
       newDishes[index][field] = value as string;
     }
@@ -102,7 +104,24 @@ export const DishSelection = ({ dishes, setDishes, numPackets, setNumPackets, on
                 max="24"
                 value={dish.quantity}
                 onChange={(e) => updateDish(index, 'quantity', e.target.value)}
+                placeholder="1"
               />
+            </div>
+            <div className="w-40">
+              <Label htmlFor={`packets-${index}`} className="text-foreground font-semibold">
+                Packets
+              </Label>
+              <Input
+                id={`packets-${index}`}
+                type="number"
+                min="0"
+                value={dish.packets || ''}
+                onChange={(e) => updateDish(index, 'packets', e.target.value)}
+                placeholder="No. of packets"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                ₹10 per packet
+              </p>
             </div>
             <Button
               variant="outline"
