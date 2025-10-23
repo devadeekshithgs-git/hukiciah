@@ -9,12 +9,12 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 import { useAuth } from '@/components/AuthProvider';
 import { useEffect } from 'react';
+import { Mail } from 'lucide-react';
 
-const signupSchema = z.object({
-  fullName: z.string().min(2, 'Full name must be at least 2 characters'),
+const authSchema = z.object({
+  fullName: z.string().min(2, 'Full name must be at least 2 characters').optional(),
   email: z.string().email('Invalid email address'),
-  mobileNumber: z.string().regex(/^[6-9]\d{9}$/, 'Invalid Indian mobile number'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  mobileNumber: z.string().regex(/^[6-9]\d{9}$/, 'Invalid Indian mobile number').optional(),
 });
 
 const Auth = () => {
@@ -22,8 +22,8 @@ const Auth = () => {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
-  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -58,7 +58,7 @@ const Auth = () => {
     e.preventDefault();
     
     try {
-      signupSchema.parse({ fullName, email, mobileNumber, password });
+      authSchema.parse({ fullName, email, mobileNumber });
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast.error(error.errors[0].message);
@@ -69,9 +69,8 @@ const Auth = () => {
     setLoading(true);
     const redirectUrl = `${window.location.origin}/`;
 
-    const { error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signInWithOtp({
       email,
-      password,
       options: {
         emailRedirectTo: redirectUrl,
         data: {
@@ -88,16 +87,29 @@ const Auth = () => {
       return;
     }
 
-    toast.success('Account created! Please check your email for verification.');
+    setEmailSent(true);
+    toast.success('Check your email for the magic link!');
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    try {
+      authSchema.parse({ email });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+        return;
+      }
+    }
+
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithOtp({
       email,
-      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/`,
+      },
     });
 
     setLoading(false);
@@ -107,8 +119,51 @@ const Auth = () => {
       return;
     }
 
-    navigate('/welcome');
+    setEmailSent(true);
+    toast.success('Check your email for the magic link!');
   };
+
+  if (emailSent) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+        <Logo size="xl" className="mb-8" />
+        
+        <div className="w-full max-w-md bg-card p-8 rounded-lg shadow-lg text-center">
+          <div className="mb-6 flex justify-center">
+            <div className="rounded-full bg-primary/10 p-4">
+              <Mail className="h-12 w-12 text-primary" />
+            </div>
+          </div>
+          
+          <h2 className="text-2xl font-bold text-foreground mb-4">
+            Check Your Email
+          </h2>
+          
+          <p className="text-foreground mb-6">
+            We've sent a magic link to <strong>{email}</strong>. 
+            Click the link in your email to sign in.
+          </p>
+          
+          <p className="text-sm text-muted-foreground mb-6">
+            Don't see it? Check your spam folder or wait a minute for it to arrive.
+          </p>
+          
+          <Button
+            variant="outline"
+            onClick={() => {
+              setEmailSent(false);
+              setEmail('');
+              setFullName('');
+              setMobileNumber('');
+            }}
+            className="w-full"
+          >
+            Back to Login
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
@@ -122,8 +177,14 @@ const Auth = () => {
         </div>
 
         <h2 className="text-2xl font-bold text-foreground mb-6">
-          {isSignup ? 'Create Account' : 'Welcome Back'}
+          {isSignup ? 'Create Account' : 'Sign In'}
         </h2>
+        
+        <p className="text-sm text-muted-foreground mb-6">
+          {isSignup 
+            ? 'Enter your details and we\'ll send you a magic link to get started.' 
+            : 'Enter your email and we\'ll send you a magic link to sign in.'}
+        </p>
 
         <form onSubmit={isSignup ? handleSignup : handleLogin} className="space-y-4">
           {isSignup && (
@@ -168,23 +229,12 @@ const Auth = () => {
             />
           </div>
 
-          <div>
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-
           <Button
             type="submit"
             className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
             disabled={loading}
           >
-            {loading ? 'Please wait...' : isSignup ? 'Sign Up' : 'Sign In'}
+            {loading ? 'Sending...' : isSignup ? 'Send Magic Link' : 'Send Magic Link'}
           </Button>
         </form>
 
@@ -205,13 +255,20 @@ const Auth = () => {
               setFullName('');
               setEmail('');
               setMobileNumber('');
-              setPassword('');
             }}
             className="w-full"
           >
-            {isSignup ? 'Sign In Instead' : 'Create New Account'}
+            {isSignup ? 'Already have an account? Sign In' : 'New here? Create Account'}
           </Button>
         </div>
+        
+        {isSignup && (
+          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md">
+            <p className="text-xs text-foreground">
+              <strong>Note:</strong> We use passwordless authentication. You'll receive a secure magic link via email to sign in.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
