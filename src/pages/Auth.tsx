@@ -88,7 +88,7 @@ const Auth = () => {
     }
 
     setEmailSent(true);
-    toast.success('Check your email for the magic link!');
+    toast.success('Check your email for the login link!');
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -120,7 +120,7 @@ const Auth = () => {
     }
 
     setEmailSent(true);
-    toast.success('Check your email for the magic link!');
+    toast.success('Check your email for the login link!');
   };
 
   if (emailSent) {
@@ -140,7 +140,7 @@ const Auth = () => {
           </h2>
           
           <p className="text-foreground mb-6">
-            We've sent a magic link to <strong>{email}</strong>. 
+            We've sent a login link to <strong>{email}</strong>. 
             Click the link in your email to sign in.
           </p>
           
@@ -182,8 +182,8 @@ const Auth = () => {
         
         <p className="text-sm text-muted-foreground mb-6">
           {isSignup 
-            ? 'Enter your details and we\'ll send you a magic link to get started.' 
-            : 'Enter your email and we\'ll send you a magic link to sign in.'}
+            ? 'Enter your details and we\'ll send you a login link to get started.' 
+            : 'Enter your email and we\'ll send you a login link to sign in.'}
         </p>
 
         <form onSubmit={isSignup ? handleSignup : handleLogin} className="space-y-4">
@@ -234,7 +234,7 @@ const Auth = () => {
             className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
             disabled={loading}
           >
-            {loading ? 'Sending...' : isSignup ? 'Send Magic Link' : 'Send Magic Link'}
+            {loading ? 'Sending...' : 'Send Login Link'}
           </Button>
         </form>
 
@@ -265,7 +265,7 @@ const Auth = () => {
         {isSignup && (
           <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md">
             <p className="text-xs text-foreground">
-              <strong>Note:</strong> We use passwordless authentication. You'll receive a secure magic link via email to sign in.
+              <strong>Note:</strong> We use passwordless authentication. You'll receive a secure login link via email to sign in.
             </p>
           </div>
         )}
