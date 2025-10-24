@@ -86,51 +86,56 @@ export const DishSelection = ({ dishes, setDishes, numPackets, setNumPackets, on
 
       <div className="space-y-4 mb-6">
         {dishes.map((dish, index) => (
-          <div key={index} className="flex gap-4 items-end">
-            <div className="flex-1">
+          <div key={index} className="space-y-3 p-4 border border-border rounded-md">
+            {/* Dish Name - Full width on top for mobile */}
+            <div className="w-full">
               <Label htmlFor={`dish-${index}`}>Dish Name</Label>
               <Input
                 id={`dish-${index}`}
                 value={dish.name}
                 onChange={(e) => updateDish(index, 'name', e.target.value)}
                 placeholder="e.g., Paneer Gravy, Fried rice, Idly, Chutney"
+                className="w-full"
               />
             </div>
-            <div className="w-32">
-              <Label htmlFor={`qty-${index}`}>Trays</Label>
-              <Input
-                id={`qty-${index}`}
-                type="number"
-                min="1"
-                max="24"
-                value={dish.quantity}
-                onChange={(e) => updateDish(index, 'quantity', e.target.value)}
-                placeholder="1"
-              />
+            
+            {/* Trays, Packets and Delete button - in a row */}
+            <div className="flex gap-3 items-end">
+              <div className="flex-1">
+                <Label htmlFor={`qty-${index}`}>Trays</Label>
+                <Input
+                  id={`qty-${index}`}
+                  type="number"
+                  min="1"
+                  max="24"
+                  value={dish.quantity}
+                  onChange={(e) => updateDish(index, 'quantity', e.target.value)}
+                  placeholder="1"
+                />
+              </div>
+              <div className="flex-1">
+                <Label htmlFor={`packets-${index}`} className="text-foreground font-semibold">
+                  Packets
+                </Label>
+                <Input
+                  id={`packets-${index}`}
+                  type="number"
+                  min="0"
+                  value={dish.packets}
+                  onChange={(e) => updateDish(index, 'packets', e.target.value)}
+                  placeholder="₹10 per packet"
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => removeDish(index)}
+                disabled={dishes.length === 1}
+                className="text-destructive hover:bg-destructive/10 flex-shrink-0"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
             </div>
-            <div className="w-32">
-              <Label htmlFor={`packets-${index}`} className="text-foreground font-semibold">
-                Packets
-              </Label>
-              <Input
-                id={`packets-${index}`}
-                type="number"
-                min="0"
-                value={dish.packets}
-                onChange={(e) => updateDish(index, 'packets', e.target.value)}
-                placeholder="₹10 per packet"
-              />
-              
-            </div>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => removeDish(index)}
-              disabled={dishes.length === 1}
-              className="text-destructive hover:bg-destructive/10"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
           </div>
         ))}
       </div>

@@ -193,9 +193,37 @@ const Profile = () => {
                   <div
                     key={booking.id}
                     className={`border rounded-md p-4 ${
-                      booking.status === 'cancelled' ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800' : 'border-border'
+                      booking.status === 'cancelled' 
+                        ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800' 
+                        : booking.payment_status === 'failed'
+                        ? 'bg-red-50 dark:bg-red-900/10 border-red-300 dark:border-red-700'
+                        : booking.payment_status === 'pending'
+                        ? 'bg-yellow-50 dark:bg-yellow-900/10 border-yellow-300 dark:border-yellow-700'
+                        : 'border-border'
                     }`}
                   >
+                    {/* Payment Status Warning Banner */}
+                    {booking.payment_status === 'failed' && (
+                      <div className="mb-3 p-3 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-md">
+                        <p className="text-sm font-semibold text-red-800 dark:text-red-200">
+                          ⚠️ Payment Failed - This booking was not completed
+                        </p>
+                        <p className="text-xs text-red-700 dark:text-red-300 mt-1">
+                          No trays were reserved. Please create a new booking.
+                        </p>
+                      </div>
+                    )}
+                    {booking.payment_status === 'pending' && (
+                      <div className="mb-3 p-3 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-md">
+                        <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-200">
+                          ⏳ Payment Pending - Awaiting payment confirmation
+                        </p>
+                        <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                          Trays are temporarily reserved. Complete payment to confirm booking.
+                        </p>
+                      </div>
+                    )}
+                    
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex-1">
                         <p className="font-semibold text-foreground">
@@ -218,13 +246,19 @@ const Profile = () => {
                             booking.status === 'cancelled'
                               ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                               : booking.payment_status === 'completed'
-                              ? 'bg-green-100 text-green-800'
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                               : booking.payment_status === 'pending'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-red-100 text-red-800'
+                              ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                              : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                           }`}
                         >
-                          {booking.status === 'cancelled' ? 'Cancelled' : booking.payment_status}
+                          {booking.status === 'cancelled' 
+                            ? 'Cancelled' 
+                            : booking.payment_status === 'failed'
+                            ? 'Payment Failed'
+                            : booking.payment_status === 'pending'
+                            ? 'Payment Pending'
+                            : 'Confirmed'}
                         </span>
                       </div>
                     </div>
