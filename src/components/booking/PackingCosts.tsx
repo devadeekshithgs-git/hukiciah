@@ -272,6 +272,15 @@ export const PackingCosts = ({
     }
   };
 
+  // Sanitize input for Google Sheets to prevent formula injection
+  const sanitizeForSheets = (value: string): string => {
+    if (!value) return '';
+    return value
+      .replace(/^[=+\-@]/g, "'") // Prevent formula injection by prefixing with single quote
+      .substring(0, 255) // Length limit
+      .replace(/[\x00-\x1F\x7F]/g, ''); // Remove control characters
+  };
+
   const sendToGoogleSheets = async (booking: any, amountPaid: number) => {
     try {
       await fetch('https://script.google.com/macros/s/AKfycbwOoJxNo1_HFzVI2lU6oKpMHi3Gq06j6_nmwdj9bg0FhlztnB_VwB16J6AOTU3Ql6PK-A/exec', {
@@ -281,10 +290,10 @@ export const PackingCosts = ({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          customer_name: profile?.full_name,
-          customer_email: profile?.email,
+          customer_name: sanitizeForSheets(profile?.full_name || ''),
+          customer_email: profile?.email, // Email already validated by Zod
           trays_booked: totalTrays,
-          contact_number: profile?.mobile_number,
+          contact_number: profile?.mobile_number, // Already validated by regex
           booking_date: formatDate(selectedDate!),
           order_id: booking.id,
           amount_paid: amountPaid,
