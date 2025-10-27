@@ -27,33 +27,20 @@ export const DateSelection = ({
   setAllocatedTrays,
   setBookedTraysForDate,
 }: DateSelectionProps) => {
-  const [bookings, setBookings] = useState<any[]>([]);
-
-  useEffect(() => {
-    fetchBookings();
-  }, []);
-
-  const fetchBookings = async () => {
-    const { data, error } = await supabase
-      .from('bookings')
-      .select('*')
-      .eq('payment_status', 'completed')
-      .eq('status', 'active');
-
-    if (error) {
-      console.error('Error fetching bookings:', error);
-      return;
-    }
-
-    setBookings(data || []);
-  };
-
   const getBookedTraysForDate = async (date: Date): Promise<number[]> => {
     const dateStr = formatDate(date);
     
-    // Get booked trays from bookings
-    const dayBookings = bookings.filter(b => b.booking_date === dateStr);
-    const bookedFromBookings = dayBookings.flatMap(b => b.tray_numbers);
+    // Get booked trays from secure tray_availability view
+    const { data: trayAvailability, error: trayError } = await supabase
+      .from('tray_availability')
+      .select('tray_numbers')
+      .eq('booking_date', dateStr);
+    
+    if (trayError) {
+      console.error('Error fetching tray availability:', trayError);
+    }
+
+    const bookedFromBookings = trayAvailability?.flatMap(b => b.tray_numbers) || [];
     
     // Get blocked trays
     const { data: blockedTrays } = await supabase
@@ -74,11 +61,20 @@ export const DateSelection = ({
       return;
     }
 
+    const dateStr = formatDate(date);
     const bookedTrays = await getBookedTraysForDate(date);
     const availableCount = TRAY_CAPACITY - bookedTrays.length;
 
     if (isSaturday(date)) {
-      const totalBookedForSaturday = bookedTrays.length;
+      // For Saturday validation, we need accurate booking count
+      // Query tray_availability view for this specific date
+      const { data: saturdayBookings } = await supabase
+        .from('tray_availability')
+        .select('tray_numbers')
+        .eq('booking_date', dateStr);
+      
+      const totalBookedForSaturday = saturdayBookings?.flatMap(b => b.tray_numbers).length || 0;
+      
       if (totalBookedForSaturday < SATURDAY_MIN_TRAYS && totalTrays < SATURDAY_MIN_TRAYS) {
         toast.error(
           `Saturday Special: Minimum ${SATURDAY_MIN_TRAYS} trays required. Currently ${totalBookedForSaturday} booked. Delivery on Monday.`,
