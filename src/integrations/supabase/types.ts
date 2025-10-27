@@ -265,21 +265,7 @@ export type Database = {
       }
     }
     Views: {
-      tray_availability: {
-        Row: {
-          booking_date: string | null
-          tray_numbers: number[] | null
-        }
-        Insert: {
-          booking_date?: string | null
-          tray_numbers?: number[] | null
-        }
-        Update: {
-          booking_date?: string | null
-          tray_numbers?: number[] | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       has_role: {

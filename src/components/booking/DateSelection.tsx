@@ -30,9 +30,9 @@ export const DateSelection = ({
   const getBookedTraysForDate = async (date: Date): Promise<number[]> => {
     const dateStr = formatDate(date);
     
-    // Get booked trays from secure tray_availability view
+    // Get booked trays from bookings table (RLS policy filters to completed bookings)
     const { data: trayAvailability, error: trayError } = await supabase
-      .from('tray_availability')
+      .from('bookings')
       .select('tray_numbers')
       .eq('booking_date', dateStr);
     
@@ -67,9 +67,9 @@ export const DateSelection = ({
 
     if (isSaturday(date)) {
       // For Saturday validation, we need accurate booking count
-      // Query tray_availability view for this specific date
+      // Query bookings table for this specific date (RLS policy filters to completed bookings)
       const { data: saturdayBookings } = await supabase
-        .from('tray_availability')
+        .from('bookings')
         .select('tray_numbers')
         .eq('booking_date', dateStr);
       
