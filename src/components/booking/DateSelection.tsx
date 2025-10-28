@@ -37,7 +37,10 @@ export const DateSelection = ({
       .eq('booking_date', dateStr);
     
     if (trayError) {
-      console.error('Error fetching tray availability:', trayError);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching tray availability:', trayError);
+      }
+      toast.error('Failed to check availability');
     }
 
     const bookedFromBookings = trayAvailability?.flatMap(b => b.tray_numbers) || [];

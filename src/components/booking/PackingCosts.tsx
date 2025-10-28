@@ -10,6 +10,19 @@ import { formatDate } from '@/lib/utils/dateUtils';
 import { CancellationPolicyDialog } from './CancellationPolicyDialog';
 import { PaymentConfirmationScreen } from './PaymentConfirmationScreen';
 import { DeliveryMethodDialog } from './DeliveryMethodDialog';
+import { z } from 'zod';
+
+// Booking validation schema
+const bookingSchema = z.object({
+  dishes: z.array(z.object({
+    name: z.string().min(1).max(100),
+    quantity: z.number().int().min(1).max(100),
+  })).min(1).max(20),
+  total_trays: z.number().int().min(1).max(50),
+  tray_numbers: z.array(z.number().int().min(1).max(50)).min(1).max(50),
+  num_packets: z.number().int().min(0).max(500),
+  booking_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format'),
+});
 
 interface PackingCostsProps {
   totalTrays: number;
@@ -122,6 +135,22 @@ export const PackingCosts = ({
     if (!user || !selectedDate) return;
 
     try {
+      // Validate booking data
+      try {
+        bookingSchema.parse({
+          dishes: dishes.map(d => ({ name: d.name, quantity: d.quantity })),
+          total_trays: totalTrays,
+          tray_numbers: allocatedTrays,
+          num_packets: numPackets,
+          booking_date: formatDate(selectedDate),
+        });
+      } catch (validationError) {
+        if (validationError instanceof z.ZodError) {
+          toast.error('Invalid booking data: ' + validationError.errors[0].message);
+          return;
+        }
+      }
+
       const dishesObj = dishes.reduce((acc, dish) => {
         acc[dish.name] = dish.quantity;
         return acc;
@@ -160,8 +189,10 @@ export const PackingCosts = ({
         .single();
 
       if (bookingError) {
+        if (import.meta.env.DEV) {
+          console.error('Booking creation error:', bookingError);
+        }
         toast.error('Failed to create booking');
-        console.error(bookingError);
         return;
       }
 
@@ -179,7 +210,9 @@ export const PackingCosts = ({
           });
 
         if (paneerError) {
-          console.error('Failed to create freeze-dried order:', paneerError);
+          if (import.meta.env.DEV) {
+            console.error('Failed to create freeze-dried order:', paneerError);
+          }
           toast.error('Failed to add freeze-dried paneer');
         }
       }
@@ -231,7 +264,9 @@ export const PackingCosts = ({
       );
 
       if (orderError || !orderData?.success) {
-        console.error('Order creation error:', orderError);
+        if (import.meta.env.DEV) {
+          console.error('Order creation error:', orderError);
+        }
         toast.error('Failed to initiate payment');
         return;
       }
@@ -280,7 +315,9 @@ export const PackingCosts = ({
             );
 
             if (verifyError || !verifyData?.success) {
-              console.error('Payment verification failed:', verifyError);
+              if (import.meta.env.DEV) {
+                console.error('Payment verification failed:', verifyError);
+              }
               toast.error('Payment verification failed. Please contact support.');
               return;
             }
@@ -327,7 +364,9 @@ export const PackingCosts = ({
         });
       };
     } catch (error) {
-      console.error('Payment error:', error);
+      if (import.meta.env.DEV) {
+        console.error('Payment error:', error);
+      }
       toast.error('Failed to initiate payment');
     }
   };
@@ -367,7 +406,10 @@ export const PackingCosts = ({
         }),
       });
     } catch (err) {
-      console.error('Failed to send to Google Sheets:', err);
+      if (import.meta.env.DEV) {
+        console.error('Failed to send to Google Sheets:', err);
+      }
+      // Silently fail - don't block user flow
     }
   };
 

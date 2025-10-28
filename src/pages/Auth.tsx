@@ -12,9 +12,9 @@ import { useEffect } from 'react';
 import { Mail } from 'lucide-react';
 
 const authSchema = z.object({
-  fullName: z.string().min(2, 'Full name must be at least 2 characters').optional(),
-  email: z.string().email('Invalid email address'),
-  mobileNumber: z.string().regex(/^[6-9]\d{9}$/, 'Invalid Indian mobile number').optional(),
+  fullName: z.string().min(2, 'Full name must be at least 2 characters').max(100, 'Name too long').trim().optional(),
+  email: z.string().email('Invalid email address').max(255, 'Email too long').trim(),
+  mobileNumber: z.string().regex(/^[6-9]\d{9}$/, 'Invalid Indian mobile number').length(10, 'Mobile number must be 10 digits').optional(),
 });
 
 const Auth = () => {
@@ -45,7 +45,9 @@ const Auth = () => {
             navigate('/welcome');
           }
         } catch (error) {
-          console.error('Error checking user role:', error);
+          if (import.meta.env.DEV) {
+            console.error('Error checking user role:', error);
+          }
           navigate('/welcome');
         }
       }

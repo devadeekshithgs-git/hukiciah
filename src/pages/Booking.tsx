@@ -49,7 +49,10 @@ const Booking = () => {
       .single();
 
     if (error) {
-      console.error('Error fetching profile:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching profile:', error);
+      }
+      toast.error('Failed to load profile');
       return;
     }
 

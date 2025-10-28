@@ -107,7 +107,10 @@ const Profile = () => {
         });
 
       if (creditError) {
-        console.error('Failed to create credit:', creditError);
+        if (import.meta.env.DEV) {
+          console.error('Failed to create credit:', creditError);
+        }
+        toast.error('Failed to create cancellation credit');
       }
 
       toast.success(`Booking cancelled. ₹${creditAmount} credit available for 6 months.`);
@@ -115,7 +118,9 @@ const Profile = () => {
       fetchBookings();
       fetchCredits();
     } catch (error) {
-      console.error('Cancellation error:', error);
+      if (import.meta.env.DEV) {
+        console.error('Cancellation error:', error);
+      }
       toast.error('Failed to cancel booking');
     }
   };
