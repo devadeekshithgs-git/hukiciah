@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { calculateDehydrationCost } from '@/lib/utils/bookingUtils';
 import { PACKING_COST_PER_PACKET, VACUUM_PACKING_PRICE, VACUUM_PACKING_PRICE_BULK, VACUUM_PACKING_BULK_THRESHOLD, FREEZE_DRIED_PANEER_PRICE_PER_GRAM } from '@/lib/constants';
@@ -35,7 +33,7 @@ export const PackingCosts = ({
   const { user } = useAuth();
   const [availableCredit, setAvailableCredit] = useState(0);
   const [appliedCredit, setAppliedCredit] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState<'online' | 'request_only' | 'cash_on_delivery'>('online');
+  const paymentMethod = 'online'; // Only Razorpay online payment supported
   const [showCancellationDialog, setShowCancellationDialog] = useState(false);
   const [showPaymentConfirmation, setShowPaymentConfirmation] = useState(false);
   const [showDeliveryDialog, setShowDeliveryDialog] = useState(false);
@@ -208,18 +206,12 @@ export const PackingCosts = ({
         }
       }
 
-      // If payment method is not online or payment not required, complete booking
-      if (paymentMethod !== 'online' || profile?.payment_required === false) {
+      // If payment not required, complete booking
+      if (profile?.payment_required === false) {
         setCompletedBooking(booking);
         setShowPaymentConfirmation(true);
         
-        const message = paymentMethod === 'request_only' 
-          ? 'Booking request received! We\'ll contact you shortly.'
-          : paymentMethod === 'cash_on_delivery'
-          ? 'Booking confirmed! Please pay cash on delivery.'
-          : 'Booking completed successfully!';
-        
-        toast.success(message);
+        toast.success('Booking completed successfully!');
         
         setTimeout(() => {
           setShowPaymentConfirmation(false);
@@ -477,24 +469,6 @@ export const PackingCosts = ({
           </div>
         </div>
 
-        {/* Payment Method Selection */}
-        <div className="mb-6 p-4 bg-accent/20 rounded-md border border-border">
-          <h3 className="font-semibold text-foreground mb-3">Payment Method</h3>
-          <RadioGroup value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as any)}>
-            <div className="flex items-center space-x-2 mb-2">
-              <RadioGroupItem value="online" id="online" />
-              <Label htmlFor="online" className="cursor-pointer">Pay Online Now (Recommended)</Label>
-            </div>
-            <div className="flex items-center space-x-2 mb-2">
-              <RadioGroupItem value="request_only" id="request_only" />
-              <Label htmlFor="request_only" className="cursor-pointer">Request Booking (We'll contact you)</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="cash_on_delivery" id="cash_on_delivery" />
-              <Label htmlFor="cash_on_delivery" className="cursor-pointer">Cash on Delivery</Label>
-            </div>
-          </RadioGroup>
-        </div>
 
         <div className="flex gap-4">
           <Button
@@ -508,11 +482,7 @@ export const PackingCosts = ({
             onClick={handlePaymentClick}
             className="flex-1 bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            {paymentMethod === 'online' 
-              ? `Confirm & Pay ₹${Math.max(0, totalCost)}`
-              : paymentMethod === 'request_only'
-              ? 'Submit Booking Request'
-              : 'Confirm Booking (COD)'}
+            Confirm & Pay ₹{Math.max(0, totalCost)}
           </Button>
         </div>
       </div>
@@ -527,7 +497,7 @@ export const PackingCosts = ({
         <PaymentConfirmationScreen
           open={showPaymentConfirmation}
           onClose={() => setShowPaymentConfirmation(false)}
-          amountPaid={paymentMethod === 'online' ? subtotal : 0}
+          amountPaid={subtotal}
           totalTrays={totalTrays}
           numVarieties={dishes.length}
           numPackets={numPackets}
