@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { calculateDehydrationCost, calculateTotalCost } from '@/lib/utils/bookingUtils';
-import { PACKING_COST_PER_PACKET } from '@/lib/constants';
+import { calculateDehydrationCost } from '@/lib/utils/bookingUtils';
+import { PACKING_COST_PER_PACKET, VACUUM_PACKING_PRICE, VACUUM_PACKING_PRICE_BULK, VACUUM_PACKING_BULK_THRESHOLD, FREEZE_DRIED_PANEER_PRICE_PER_GRAM } from '@/lib/constants';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
@@ -16,9 +16,10 @@ import { DeliveryMethodDialog } from './DeliveryMethodDialog';
 interface PackingCostsProps {
   totalTrays: number;
   numPackets: number;
-  dishes: { name: string; quantity: number }[];
+  dishes: { name: string; quantity: number; packets?: number; vacuumPacking?: { enabled: boolean; packets: number } }[];
   selectedDate: Date | null;
   allocatedTrays: number[];
+  freezeDriedPaneer: { enabled: boolean; packets: number; gramsPerPacket: number };
   onBack: () => void;
 }
 
@@ -28,20 +29,47 @@ export const PackingCosts = ({
   dishes,
   selectedDate,
   allocatedTrays,
+  freezeDriedPaneer,
   onBack,
 }: PackingCostsProps) => {
   const { user } = useAuth();
   const [availableCredit, setAvailableCredit] = useState(0);
   const [appliedCredit, setAppliedCredit] = useState(0);
+  const [paymentMethod, setPaymentMethod] = useState<'online' | 'request_only' | 'cash_on_delivery'>('online');
   const [showCancellationDialog, setShowCancellationDialog] = useState(false);
   const [showPaymentConfirmation, setShowPaymentConfirmation] = useState(false);
   const [showDeliveryDialog, setShowDeliveryDialog] = useState(false);
   const [completedBooking, setCompletedBooking] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   
+  // Calculate vacuum packing cost
+  const calculateVacuumPackingCost = (): number => {
+    let totalCost = 0;
+    dishes.forEach(dish => {
+      if (dish.vacuumPacking?.enabled && dish.vacuumPacking.packets > 0) {
+        const price = dish.vacuumPacking.packets > VACUUM_PACKING_BULK_THRESHOLD 
+          ? VACUUM_PACKING_PRICE_BULK 
+          : VACUUM_PACKING_PRICE;
+        totalCost += dish.vacuumPacking.packets * price;
+      }
+    });
+    return totalCost;
+  };
+
+  // Calculate freeze-dried paneer cost
+  const calculateFreezeDriedCost = (): number => {
+    if (!freezeDriedPaneer.enabled || freezeDriedPaneer.packets === 0 || freezeDriedPaneer.gramsPerPacket === 0) {
+      return 0;
+    }
+    return freezeDriedPaneer.packets * freezeDriedPaneer.gramsPerPacket * FREEZE_DRIED_PANEER_PRICE_PER_GRAM;
+  };
+
   const dehydrationCost = calculateDehydrationCost(totalTrays);
   const packingCost = numPackets * PACKING_COST_PER_PACKET;
-  const totalCost = dehydrationCost + packingCost - appliedCredit;
+  const vacuumPackingCost = calculateVacuumPackingCost();
+  const freezeDriedCost = calculateFreezeDriedCost();
+  const subtotal = dehydrationCost + packingCost + vacuumPackingCost + freezeDriedCost;
+  const totalCost = subtotal - appliedCredit;
 
   useEffect(() => {
     if (user) {
@@ -74,7 +102,7 @@ export const PackingCosts = ({
   };
 
   const handleApplyCredit = () => {
-    const maxApplicable = Math.min(availableCredit, dehydrationCost + packingCost);
+    const maxApplicable = Math.min(availableCredit, subtotal);
     setAppliedCredit(maxApplicable);
     toast.success(`Applied ₹${maxApplicable} credit`);
   };
@@ -101,6 +129,17 @@ export const PackingCosts = ({
         return acc;
       }, {} as Record<string, number>);
 
+      // Prepare vacuum packing data
+      const vacuumPackingData = dishes
+        .filter(dish => dish.vacuumPacking?.enabled)
+        .map(dish => ({
+          dish: dish.name,
+          packets: dish.vacuumPacking!.packets,
+          cost_per_packet: dish.vacuumPacking!.packets > VACUUM_PACKING_BULK_THRESHOLD 
+            ? VACUUM_PACKING_PRICE_BULK 
+            : VACUUM_PACKING_PRICE,
+        }));
+
       const { data: booking, error: bookingError } = await supabase
         .from('bookings')
         .insert({
@@ -110,12 +149,14 @@ export const PackingCosts = ({
           total_trays: totalTrays,
           num_packets: numPackets,
           dehydration_cost: dehydrationCost,
-          packing_cost: packingCost,
-          total_cost: dehydrationCost + packingCost,
+          packing_cost: packingCost + vacuumPackingCost,
+          total_cost: subtotal,
           applied_credit_amount: appliedCredit,
           tray_numbers: allocatedTrays,
-          payment_status: profile?.payment_required === false ? 'completed' : 'pending',
+          payment_method: paymentMethod,
+          payment_status: paymentMethod === 'online' && profile?.payment_required !== false ? 'pending' : 'completed',
           status: 'active',
+          vacuum_packing: vacuumPackingData,
         })
         .select()
         .single();
@@ -124,6 +165,25 @@ export const PackingCosts = ({
         toast.error('Failed to create booking');
         console.error(bookingError);
         return;
+      }
+
+      // Create freeze-dried paneer order if enabled
+      if (freezeDriedPaneer.enabled && freezeDriedPaneer.packets > 0) {
+        const { error: paneerError } = await supabase
+          .from('freeze_dried_orders')
+          .insert({
+            booking_id: booking.id,
+            product_type: 'paneer',
+            total_packets: freezeDriedPaneer.packets,
+            grams_per_packet: freezeDriedPaneer.gramsPerPacket,
+            unit_price_per_gram: FREEZE_DRIED_PANEER_PRICE_PER_GRAM,
+            total_cost: freezeDriedCost,
+          });
+
+        if (paneerError) {
+          console.error('Failed to create freeze-dried order:', paneerError);
+          toast.error('Failed to add freeze-dried paneer');
+        }
       }
 
       // Mark used credits
@@ -148,10 +208,18 @@ export const PackingCosts = ({
         }
       }
 
-      // If payment not required, complete booking without payment
-      if (profile?.payment_required === false) {
+      // If payment method is not online or payment not required, complete booking
+      if (paymentMethod !== 'online' || profile?.payment_required === false) {
         setCompletedBooking(booking);
         setShowPaymentConfirmation(true);
+        
+        const message = paymentMethod === 'request_only' 
+          ? 'Booking request received! We\'ll contact you shortly.'
+          : paymentMethod === 'cash_on_delivery'
+          ? 'Booking confirmed! Please pay cash on delivery.'
+          : 'Booking completed successfully!';
+        
+        toast.success(message);
         
         setTimeout(() => {
           setShowPaymentConfirmation(false);
@@ -276,9 +344,9 @@ export const PackingCosts = ({
   const sanitizeForSheets = (value: string): string => {
     if (!value) return '';
     return value
-      .replace(/^[=+\-@]/g, "'") // Prevent formula injection by prefixing with single quote
-      .substring(0, 255) // Length limit
-      .replace(/[\x00-\x1F\x7F]/g, ''); // Remove control characters
+      .replace(/^[=+\-@]/g, "'")
+      .substring(0, 255)
+      .replace(/[\x00-\x1F\x7F]/g, '');
   };
 
   const sendToGoogleSheets = async (booking: any, amountPaid: number) => {
@@ -291,15 +359,18 @@ export const PackingCosts = ({
         },
         body: JSON.stringify({
           customer_name: sanitizeForSheets(profile?.full_name || ''),
-          customer_email: profile?.email, // Email already validated by Zod
+          customer_email: profile?.email,
           trays_booked: totalTrays,
-          contact_number: profile?.mobile_number, // Already validated by regex
+          contact_number: profile?.mobile_number,
           booking_date: formatDate(selectedDate!),
           order_id: booking.id,
           amount_paid: amountPaid,
           delivery_method: booking.delivery_method || 'not_set',
           payment_required: profile?.payment_required !== false,
           applied_credit: appliedCredit,
+          payment_method: paymentMethod,
+          vacuum_packing_cost: vacuumPackingCost,
+          freeze_dried_cost: freezeDriedCost,
           status: 'active',
         }),
       });
@@ -358,11 +429,16 @@ export const PackingCosts = ({
               <div className="flex justify-between items-center">
                 <span className="text-foreground">Total Trays: <strong>{totalTrays}</strong> | Packets: <strong>{numPackets}</strong></span>
               </div>
-              <div className="text-xs text-muted-foreground p-2 bg-background/50 rounded border border-border">
-                <strong>About Packets:</strong> Packets are determined by the quantity you order. 
-                For example, 1 liter can be divided into either five 200-gram packets or four 250-gram packets, 
-                depending on your requirements.
-              </div>
+              {vacuumPackingCost > 0 && (
+                <div className="text-xs text-muted-foreground p-2 bg-background/50 rounded border border-border">
+                  <strong>Vacuum Packing:</strong> Special packaging for selected items
+                </div>
+              )}
+              {freezeDriedCost > 0 && (
+                <div className="text-xs text-muted-foreground p-2 bg-background/50 rounded border border-border">
+                  <strong>Freeze-Dried Paneer:</strong> {freezeDriedPaneer.packets} packets × {freezeDriedPaneer.gramsPerPacket}g
+                </div>
+              )}
             </div>
             
             <h3 className="font-semibold text-foreground mb-2 mt-4">Cost Breakdown</h3>
@@ -372,9 +448,21 @@ export const PackingCosts = ({
                 <span className="font-semibold text-foreground">₹{dehydrationCost}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-foreground">Packing Cost ({numPackets} packets @ ₹10 each):</span>
+                <span className="text-foreground">Regular Packing ({numPackets} packets @ ₹10 each):</span>
                 <span className="font-semibold text-foreground">₹{packingCost}</span>
               </div>
+              {vacuumPackingCost > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-foreground">Vacuum Packing:</span>
+                  <span className="font-semibold text-foreground">₹{vacuumPackingCost}</span>
+                </div>
+              )}
+              {freezeDriedCost > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-foreground">Freeze-Dried Paneer:</span>
+                  <span className="font-semibold text-foreground">₹{freezeDriedCost}</span>
+                </div>
+              )}
               {appliedCredit > 0 && (
                 <div className="flex justify-between text-green-600">
                   <span>Credit Applied:</span>
@@ -389,6 +477,25 @@ export const PackingCosts = ({
           </div>
         </div>
 
+        {/* Payment Method Selection */}
+        <div className="mb-6 p-4 bg-accent/20 rounded-md border border-border">
+          <h3 className="font-semibold text-foreground mb-3">Payment Method</h3>
+          <RadioGroup value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as any)}>
+            <div className="flex items-center space-x-2 mb-2">
+              <RadioGroupItem value="online" id="online" />
+              <Label htmlFor="online" className="cursor-pointer">Pay Online Now (Recommended)</Label>
+            </div>
+            <div className="flex items-center space-x-2 mb-2">
+              <RadioGroupItem value="request_only" id="request_only" />
+              <Label htmlFor="request_only" className="cursor-pointer">Request Booking (We'll contact you)</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="cash_on_delivery" id="cash_on_delivery" />
+              <Label htmlFor="cash_on_delivery" className="cursor-pointer">Cash on Delivery</Label>
+            </div>
+          </RadioGroup>
+        </div>
+
         <div className="flex gap-4">
           <Button
             variant="outline"
@@ -401,7 +508,11 @@ export const PackingCosts = ({
             onClick={handlePaymentClick}
             className="flex-1 bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            {profile?.payment_required === false ? 'Confirm Booking' : `Confirm & Pay ₹${Math.max(0, totalCost)}`}
+            {paymentMethod === 'online' 
+              ? `Confirm & Pay ₹${Math.max(0, totalCost)}`
+              : paymentMethod === 'request_only'
+              ? 'Submit Booking Request'
+              : 'Confirm Booking (COD)'}
           </Button>
         </div>
       </div>
@@ -409,14 +520,14 @@ export const PackingCosts = ({
       <CancellationPolicyDialog
         open={showCancellationDialog}
         onAccept={handleCancellationAccept}
-        totalCost={dehydrationCost + packingCost}
+        totalCost={subtotal}
       />
 
       {completedBooking && (
         <PaymentConfirmationScreen
           open={showPaymentConfirmation}
           onClose={() => setShowPaymentConfirmation(false)}
-          amountPaid={dehydrationCost + packingCost}
+          amountPaid={paymentMethod === 'online' ? subtotal : 0}
           totalTrays={totalTrays}
           numVarieties={dishes.length}
           numPackets={numPackets}

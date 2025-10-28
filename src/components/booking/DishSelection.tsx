@@ -2,18 +2,22 @@ import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, Trash2 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Plus, Trash2, Snowflake } from 'lucide-react';
 import { toast } from 'sonner';
+import { VACUUM_PACKING_ITEMS, VACUUM_PACKING_PRICE, VACUUM_PACKING_PRICE_BULK, VACUUM_PACKING_BULK_THRESHOLD } from '@/lib/constants';
 
 interface DishSelectionProps {
-  dishes: { name: string; quantity: number; packets?: number }[];
-  setDishes: (dishes: { name: string; quantity: number; packets?: number }[]) => void;
+  dishes: { name: string; quantity: number; packets?: number; vacuumPacking?: { enabled: boolean; packets: number } }[];
+  setDishes: (dishes: { name: string; quantity: number; packets?: number; vacuumPacking?: { enabled: boolean; packets: number } }[]) => void;
   numPackets: number;
   setNumPackets: (num: number) => void;
+  freezeDriedPaneer: { enabled: boolean; packets: number; gramsPerPacket: number };
+  setFreezeDriedPaneer: (paneer: { enabled: boolean; packets: number; gramsPerPacket: number }) => void;
   onNext: () => void;
 }
 
-export const DishSelection = ({ dishes, setDishes, numPackets, setNumPackets, onNext }: DishSelectionProps) => {
+export const DishSelection = ({ dishes, setDishes, numPackets, setNumPackets, freezeDriedPaneer, setFreezeDriedPaneer, onNext }: DishSelectionProps) => {
   const totalTrays = dishes.reduce((sum, dish) => sum + (dish.quantity || 0), 0);
 
   // Calculate total packets from all dishes
@@ -21,6 +25,17 @@ export const DishSelection = ({ dishes, setDishes, numPackets, setNumPackets, on
     const totalPackets = dishes.reduce((sum, dish) => sum + (dish.packets || 0), 0);
     setNumPackets(totalPackets);
   }, [dishes, setNumPackets]);
+
+  // Check if a dish is eligible for vacuum packing
+  const isVacuumPackingEligible = (dishName: string): boolean => {
+    const normalizedName = dishName.toLowerCase().trim();
+    return VACUUM_PACKING_ITEMS.some(item => normalizedName.includes(item));
+  };
+
+  // Calculate vacuum packing price
+  const getVacuumPackingPrice = (packets: number): number => {
+    return packets > VACUUM_PACKING_BULK_THRESHOLD ? VACUUM_PACKING_PRICE_BULK : VACUUM_PACKING_PRICE;
+  };
 
   const addDish = () => {
     if (totalTrays >= 24) {
@@ -38,7 +53,7 @@ export const DishSelection = ({ dishes, setDishes, numPackets, setNumPackets, on
     setDishes(dishes.filter((_, i) => i !== index));
   };
 
-  const updateDish = (index: number, field: 'name' | 'quantity' | 'packets', value: string | number) => {
+  const updateDish = (index: number, field: 'name' | 'quantity' | 'packets' | 'vacuumPacking', value: string | number | { enabled: boolean; packets: number }) => {
     const newDishes = [...dishes];
     if (field === 'quantity') {
       const qty = Number(value);
@@ -50,8 +65,14 @@ export const DishSelection = ({ dishes, setDishes, numPackets, setNumPackets, on
       newDishes[index][field] = qty;
     } else if (field === 'packets') {
       newDishes[index][field] = Number(value);
+    } else if (field === 'vacuumPacking') {
+      newDishes[index][field] = value as { enabled: boolean; packets: number };
     } else {
       newDishes[index][field] = value as string;
+      // Reset vacuum packing if dish name changes
+      if (field === 'name' && newDishes[index].vacuumPacking) {
+        newDishes[index].vacuumPacking = { enabled: false, packets: 0 };
+      }
     }
     setDishes(newDishes);
   };
@@ -136,6 +157,54 @@ export const DishSelection = ({ dishes, setDishes, numPackets, setNumPackets, on
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
+
+            {/* Vacuum Packing Option - Show only for eligible items */}
+            {dish.name && isVacuumPackingEligible(dish.name) && (
+              <div className="mt-3 p-3 bg-accent/20 rounded-md border border-accent">
+                <div className="flex items-center space-x-2 mb-2">
+                  <Checkbox
+                    id={`vacuum-${index}`}
+                    checked={dish.vacuumPacking?.enabled || false}
+                    onCheckedChange={(checked) => {
+                      updateDish(index, 'vacuumPacking', {
+                        enabled: checked as boolean,
+                        packets: checked ? (dish.vacuumPacking?.packets || 0) : 0,
+                      });
+                    }}
+                  />
+                  <Label htmlFor={`vacuum-${index}`} className="text-sm font-medium cursor-pointer">
+                    Add Vacuum Packing
+                  </Label>
+                </div>
+                {dish.vacuumPacking?.enabled && (
+                  <div className="mt-2">
+                    <Label htmlFor={`vacuum-packets-${index}`} className="text-xs">
+                      Number of vacuum packets
+                    </Label>
+                    <Input
+                      id={`vacuum-packets-${index}`}
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={dish.vacuumPacking.packets}
+                      onChange={(e) => {
+                        const packets = Number(e.target.value);
+                        updateDish(index, 'vacuumPacking', {
+                          enabled: true,
+                          packets,
+                        });
+                      }}
+                      placeholder="Number of packets"
+                      className="mt-1"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      ₹{getVacuumPackingPrice(dish.vacuumPacking.packets)}/packet
+                      {dish.vacuumPacking.packets > VACUUM_PACKING_BULK_THRESHOLD && ' (Bulk discount applied!)'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -154,8 +223,71 @@ export const DishSelection = ({ dishes, setDishes, numPackets, setNumPackets, on
         </div>
       </div>
 
-      {/* Packing Information */}
-      
+      {/* Freeze-Dried Paneer Section */}
+      <div className="mb-6 p-4 bg-accent/10 rounded-lg border-2 border-accent">
+        <div className="flex items-center gap-2 mb-3">
+          <Snowflake className="h-5 w-5 text-primary" />
+          <h3 className="text-lg font-bold text-foreground">Freeze-Dried Products (Optional)</h3>
+        </div>
+        <p className="text-sm text-muted-foreground mb-4">
+          Add freeze-dried products to your order. These do not count toward the 24-tray limit.
+        </p>
+
+        <div className="flex items-center space-x-2 mb-4">
+          <Checkbox
+            id="freeze-dried-paneer"
+            checked={freezeDriedPaneer.enabled}
+            onCheckedChange={(checked) => {
+              setFreezeDriedPaneer({
+                enabled: checked as boolean,
+                packets: checked ? freezeDriedPaneer.packets : 0,
+                gramsPerPacket: checked ? freezeDriedPaneer.gramsPerPacket : 0,
+              });
+            }}
+          />
+          <Label htmlFor="freeze-dried-paneer" className="text-sm font-medium cursor-pointer">
+            Add Freeze-Dried Paneer
+          </Label>
+        </div>
+
+        {freezeDriedPaneer.enabled && (
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="paneer-packets" className="text-sm">Number of packets</Label>
+              <Input
+                id="paneer-packets"
+                type="number"
+                min="1"
+                max="100"
+                value={freezeDriedPaneer.packets || ''}
+                onChange={(e) => {
+                  const packets = Number(e.target.value);
+                  setFreezeDriedPaneer({ ...freezeDriedPaneer, packets });
+                }}
+                placeholder="e.g., 5"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="paneer-grams" className="text-sm">Grams per packet</Label>
+              <Input
+                id="paneer-grams"
+                type="number"
+                min="50"
+                max="2000"
+                step="50"
+                value={freezeDriedPaneer.gramsPerPacket || ''}
+                onChange={(e) => {
+                  const grams = Number(e.target.value);
+                  setFreezeDriedPaneer({ ...freezeDriedPaneer, gramsPerPacket: grams });
+                }}
+                placeholder="e.g., 250"
+                className="mt-1"
+              />
+            </div>
+          </div>
+        )}
+      </div>
 
       <Button
         onClick={handleNext}

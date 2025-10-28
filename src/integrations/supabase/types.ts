@@ -52,6 +52,7 @@ export type Database = {
           id: string
           num_packets: number
           packing_cost: number
+          payment_method: string | null
           payment_status: string
           razorpay_order_id: string | null
           razorpay_payment_id: string | null
@@ -61,6 +62,7 @@ export type Database = {
           tray_numbers: number[]
           updated_at: string
           user_id: string
+          vacuum_packing: Json | null
         }
         Insert: {
           applied_credit_amount?: number | null
@@ -72,6 +74,7 @@ export type Database = {
           id?: string
           num_packets?: number
           packing_cost: number
+          payment_method?: string | null
           payment_status?: string
           razorpay_order_id?: string | null
           razorpay_payment_id?: string | null
@@ -81,6 +84,7 @@ export type Database = {
           tray_numbers: number[]
           updated_at?: string
           user_id: string
+          vacuum_packing?: Json | null
         }
         Update: {
           applied_credit_amount?: number | null
@@ -92,6 +96,7 @@ export type Database = {
           id?: string
           num_packets?: number
           packing_cost?: number
+          payment_method?: string | null
           payment_status?: string
           razorpay_order_id?: string | null
           razorpay_payment_id?: string | null
@@ -101,6 +106,7 @@ export type Database = {
           tray_numbers?: number[]
           updated_at?: string
           user_id?: string
+          vacuum_packing?: Json | null
         }
         Relationships: []
       }
@@ -179,6 +185,47 @@ export type Database = {
           {
             foreignKeyName: "cancellation_credits_used_in_booking_id_fkey"
             columns: ["used_in_booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      freeze_dried_orders: {
+        Row: {
+          booking_id: string | null
+          created_at: string | null
+          grams_per_packet: number
+          id: string
+          product_type: string
+          total_cost: number
+          total_packets: number
+          unit_price_per_gram: number
+        }
+        Insert: {
+          booking_id?: string | null
+          created_at?: string | null
+          grams_per_packet: number
+          id?: string
+          product_type?: string
+          total_cost: number
+          total_packets: number
+          unit_price_per_gram: number
+        }
+        Update: {
+          booking_id?: string | null
+          created_at?: string | null
+          grams_per_packet?: number
+          id?: string
+          product_type?: string
+          total_cost?: number
+          total_packets?: number
+          unit_price_per_gram?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freeze_dried_orders_booking_id_fkey"
+            columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
             referencedColumns: ["id"]

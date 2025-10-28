@@ -47,13 +47,19 @@ serve(async (req) => {
       );
     }
 
+    // Group bookings by payment method
+    const confirmedBookings = bookings.filter((b: any) => b.payment_method === 'online' || b.payment_status === 'completed');
+    const pendingRequests = bookings.filter((b: any) => b.payment_method === 'request_only' || b.payment_method === 'cash_on_delivery');
+
     // Format appointment list
     let emailContent = `
       <h2>HUKI - Appointment List for ${tomorrow.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</h2>
-      <p>Total Bookings: ${bookings.length}</p>
-      <table border="1" cellpadding="10" cellspacing="0" style="border-collapse: collapse; width: 100%;">
+      <p>Total Bookings: ${bookings.length} | Confirmed: ${confirmedBookings.length} | Pending: ${pendingRequests.length}</p>
+      
+      <h3 style="color: #22c55e;">✅ CONFIRMED BOOKINGS (Paid Online)</h3>
+      <table border="1" cellpadding="10" cellspacing="0" style="border-collapse: collapse; width: 100%; margin-bottom: 20px;">
         <thead>
-          <tr style="background-color: #f0f0f0;">
+          <tr style="background-color: #dcfce7;">
             <th>Customer Name</th>
             <th>Mobile</th>
             <th>Email</th>
@@ -65,7 +71,7 @@ serve(async (req) => {
         <tbody>
     `;
 
-    bookings.forEach((booking: any) => {
+    confirmedBookings.forEach((booking: any) => {
       const profile = booking.profiles;
       emailContent += `
         <tr>
@@ -82,8 +88,51 @@ serve(async (req) => {
     emailContent += `
         </tbody>
       </table>
+
+      <h3 style="color: #f59e0b;">⏳ PENDING REQUESTS (Not Paid / COD)</h3>
+      <table border="1" cellpadding="10" cellspacing="0" style="border-collapse: collapse; width: 100%; margin-bottom: 20px;">
+        <thead>
+          <tr style="background-color: #fef3c7;">
+            <th>Customer Name</th>
+            <th>Mobile</th>
+            <th>Email</th>
+            <th>Trays</th>
+            <th>Payment Method</th>
+            <th>Reference</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    if (pendingRequests.length === 0) {
+      emailContent += '<tr><td colspan="6" style="text-align: center;">No pending requests</td></tr>';
+    } else {
+      pendingRequests.forEach((booking: any) => {
+        const profile = booking.profiles;
+        const paymentMethodLabel = booking.payment_method === 'request_only' ? 'Request Only' : 'Cash on Delivery';
+        emailContent += `
+          <tr>
+            <td>${profile?.full_name || 'N/A'}</td>
+            <td><strong>${profile?.mobile_number || 'N/A'}</strong></td>
+            <td>${profile?.email || 'N/A'}</td>
+            <td>${booking.total_trays} (${booking.tray_numbers.join(', ')})</td>
+            <td><strong>${paymentMethodLabel}</strong></td>
+            <td>${booking.id.slice(0, 8)}</td>
+          </tr>
+        `;
+      });
+    }
+
+    emailContent += `
+        </tbody>
+      </table>
       <br>
-      <p><strong>Note:</strong> Consider calling first-time customers for confirmation.</p>
+      <p><strong>Action Required:</strong></p>
+      <ul>
+        <li>Call pending request customers for confirmation</li>
+        <li>Consider calling first-time customers</li>
+        <li>Verify COD payment arrangements</li>
+      </ul>
     `;
 
     // Log notification

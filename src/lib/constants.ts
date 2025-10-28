@@ -23,3 +23,14 @@ export const TRAY_PRICE_6_OR_MORE = 300;
 export const PACKING_COST_PER_PACKET = 10;
 export const ORDER_ACCEPTANCE_TIME = '13:00'; // 1 PM
 export const SATURDAY_MIN_TRAYS = 6;
+
+// Vacuum packing pricing
+export const VACUUM_PACKING_PRICE = 100; // ₹100 per packet
+export const VACUUM_PACKING_PRICE_BULK = 80; // ₹80 per packet if >10 packets
+export const VACUUM_PACKING_BULK_THRESHOLD = 10;
+
+// Freeze-dried paneer pricing
+export const FREEZE_DRIED_PANEER_PRICE_PER_GRAM = 2; // ₹2 per gram
+
+// Vacuum packing eligible items
+export const VACUUM_PACKING_ITEMS = ['thepla', 'roti', 'chapati'];

@@ -17,7 +17,7 @@ const AdminBookings = () => {
 
       if (error) throw error;
 
-      // Fetch profile data for each booking
+      // Fetch profile data and freeze-dried orders for each booking
       const bookingsWithProfiles = await Promise.all(
         data.map(async (booking) => {
           const { data: profile } = await supabase
@@ -26,7 +26,12 @@ const AdminBookings = () => {
             .eq('id', booking.user_id)
             .single();
           
-          return { ...booking, profile };
+          const { data: freezeDried } = await supabase
+            .from('freeze_dried_orders')
+            .select('*')
+            .eq('booking_id', booking.id);
+          
+          return { ...booking, profile, freeze_dried_orders: freezeDried || [] };
         })
       );
 
@@ -57,7 +62,9 @@ const AdminBookings = () => {
                 <TableHead>Contact</TableHead>
                 <TableHead>Trays</TableHead>
                 <TableHead>Tray Numbers</TableHead>
+                <TableHead>Extras</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Payment Method</TableHead>
                 <TableHead>Payment</TableHead>
                 <TableHead>Amount</TableHead>
               </TableRow>
@@ -80,8 +87,44 @@ const AdminBookings = () => {
                     </div>
                   </TableCell>
                   <TableCell>
+                    <div className="text-xs space-y-1">
+                      {booking.vacuum_packing && Array.isArray(booking.vacuum_packing) && (booking.vacuum_packing as any[]).length > 0 && (
+                        <div className="text-blue-600">
+                          🔵 Vacuum: {(booking.vacuum_packing as any[]).length} items
+                        </div>
+                      )}
+                      {booking.freeze_dried_orders && Array.isArray(booking.freeze_dried_orders) && booking.freeze_dried_orders.length > 0 && (
+                        <div className="text-purple-600">
+                          ❄️ Paneer: {(booking.freeze_dried_orders[0] as any).total_packets}×{(booking.freeze_dried_orders[0] as any).grams_per_packet}g
+                        </div>
+                      )}
+                      {(!booking.vacuum_packing || !Array.isArray(booking.vacuum_packing) || (booking.vacuum_packing as any[]).length === 0) && 
+                       (!booking.freeze_dried_orders || !Array.isArray(booking.freeze_dried_orders) || booking.freeze_dried_orders.length === 0) && (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
                     <Badge variant={booking.status === 'completed' ? 'default' : 'secondary'}>
                       {booking.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge 
+                      variant="outline"
+                      className={
+                        booking.payment_method === 'online' 
+                          ? 'border-green-500 text-green-600' 
+                          : booking.payment_method === 'request_only'
+                          ? 'border-yellow-500 text-yellow-600'
+                          : 'border-blue-500 text-blue-600'
+                      }
+                    >
+                      {booking.payment_method === 'online' 
+                        ? 'Online' 
+                        : booking.payment_method === 'request_only'
+                        ? 'Request'
+                        : 'COD'}
                     </Badge>
                   </TableCell>
                   <TableCell>

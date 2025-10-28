@@ -17,11 +17,12 @@ const Booking = () => {
   const [userProfile, setUserProfile] = useState<any>(null);
   const [hasAcceptedRules, setHasAcceptedRules] = useState(false);
   const [step, setStep] = useState(1);
-  const [dishes, setDishes] = useState<{ name: string; quantity: number }[]>([{ name: '', quantity: 1 }]);
+  const [dishes, setDishes] = useState<{ name: string; quantity: number; packets?: number; vacuumPacking?: { enabled: boolean; packets: number } }[]>([{ name: '', quantity: 1 }]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [numPackets, setNumPackets] = useState(0);
   const [allocatedTrays, setAllocatedTrays] = useState<number[]>([]);
   const [bookedTraysForDate, setBookedTraysForDate] = useState<number[]>([]);
+  const [freezeDriedPaneer, setFreezeDriedPaneer] = useState<{ enabled: boolean; packets: number; gramsPerPacket: number }>({ enabled: false, packets: 0, gramsPerPacket: 0 });
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -92,6 +93,8 @@ const Booking = () => {
             setDishes={setDishes}
             numPackets={numPackets}
             setNumPackets={setNumPackets}
+            freezeDriedPaneer={freezeDriedPaneer}
+            setFreezeDriedPaneer={setFreezeDriedPaneer}
             onNext={() => setStep(2)}
           />
         );
@@ -127,6 +130,7 @@ const Booking = () => {
             dishes={dishes}
             selectedDate={selectedDate}
             allocatedTrays={allocatedTrays}
+            freezeDriedPaneer={freezeDriedPaneer}
             onBack={() => setStep(3)}
           />
         );
