@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/AuthProvider';
 import { useUserRole } from '@/hooks/useUserRole';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CalendarDays, Package, Users, LogOut } from 'lucide-react';
+import { CalendarDays, Package, Users, LogOut, Grid3x3, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import AdminBookings from '@/components/admin/AdminBookings';
 import AdminCalendar from '@/components/admin/AdminCalendar';
 import AdminDashboard from '@/components/admin/AdminDashboard';
+import AdminTrayManagement from '@/components/admin/AdminTrayManagement';
 
 const Admin = () => {
   const { user, loading: authLoading } = useAuth();
@@ -48,7 +49,10 @@ const Admin = () => {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-primary">HUKI Admin Dashboard</h1>
+          <div>
+            <h1 className="text-2xl font-bold text-primary">HUKI Admin Dashboard</h1>
+            <p className="text-sm text-muted-foreground">Food Dehydration Operations</p>
+          </div>
           <Button variant="ghost" onClick={handleLogout}>
             <LogOut className="mr-2 h-4 w-4" />
             Logout
@@ -58,9 +62,9 @@ const Admin = () => {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-8">
+          <TabsList className="grid w-full grid-cols-4 mb-8">
             <TabsTrigger value="dashboard">
-              <Users className="mr-2 h-4 w-4" />
+              <LayoutDashboard className="mr-2 h-4 w-4" />
               Dashboard
             </TabsTrigger>
             <TabsTrigger value="bookings">
@@ -70,6 +74,10 @@ const Admin = () => {
             <TabsTrigger value="calendar">
               <CalendarDays className="mr-2 h-4 w-4" />
               Calendar
+            </TabsTrigger>
+            <TabsTrigger value="tray-management">
+              <Grid3x3 className="mr-2 h-4 w-4" />
+              Tray Management
             </TabsTrigger>
           </TabsList>
 
@@ -83,6 +91,10 @@ const Admin = () => {
 
           <TabsContent value="calendar">
             <AdminCalendar />
+          </TabsContent>
+
+          <TabsContent value="tray-management">
+            <AdminTrayManagement />
           </TabsContent>
         </Tabs>
       </main>
