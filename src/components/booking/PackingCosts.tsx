@@ -470,7 +470,7 @@ export const PackingCosts = ({
               )}
               {freezeDriedCost > 0 && (
                 <div className="text-xs text-muted-foreground p-2 bg-background/50 rounded border border-border">
-                  <strong>Freeze-Dried Paneer:</strong> {freezeDriedPaneer.packets} packets × {freezeDriedPaneer.gramsPerPacket}g
+                  <strong>Freeze-Dried Paneer:</strong> {freezeDriedPaneer.packets} packet{freezeDriedPaneer.packets > 1 ? 's' : ''} × {freezeDriedPaneer.gramsPerPacket}g @ ₹2/g
                 </div>
               )}
             </div>
@@ -493,8 +493,10 @@ export const PackingCosts = ({
               )}
               {freezeDriedCost > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-foreground">Freeze-Dried Paneer:</span>
-                  <span className="font-semibold text-foreground">₹{freezeDriedCost}</span>
+                  <span className="text-foreground">
+                    Freeze-Dried Paneer ({freezeDriedPaneer.packets} × {freezeDriedPaneer.gramsPerPacket}g × ₹2/g):
+                  </span>
+                  <span className="font-semibold text-foreground">₹{freezeDriedCost.toLocaleString('en-IN')}</span>
                 </div>
               )}
               {appliedCredit > 0 && (

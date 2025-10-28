@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Trash2, Snowflake } from 'lucide-react';
 import { toast } from 'sonner';
-import { VACUUM_PACKING_ITEMS, VACUUM_PACKING_PRICE, VACUUM_PACKING_PRICE_BULK, VACUUM_PACKING_BULK_THRESHOLD } from '@/lib/constants';
+import { VACUUM_PACKING_ITEMS, VACUUM_PACKING_PRICE, VACUUM_PACKING_PRICE_BULK, VACUUM_PACKING_BULK_THRESHOLD, FREEZE_DRIED_PANEER_PRICE_PER_GRAM } from '@/lib/constants';
 
 interface DishSelectionProps {
   dishes: { name: string; quantity: number; packets?: number; vacuumPacking?: { enabled: boolean; packets: number } }[];
@@ -229,9 +229,21 @@ export const DishSelection = ({ dishes, setDishes, numPackets, setNumPackets, fr
           <Snowflake className="h-5 w-5 text-primary" />
           <h3 className="text-lg font-bold text-foreground">Freeze-Dried Products (Optional)</h3>
         </div>
-        <p className="text-sm text-muted-foreground mb-4">
-          Add freeze-dried products to your order. These do not count toward the 24-tray limit.
-        </p>
+        
+        <div className="mb-4 p-3 bg-background/50 rounded-md border border-border">
+          <p className="text-sm text-foreground mb-2">
+            <strong>💰 Pricing:</strong> ₹2 per gram
+          </p>
+          <p className="text-xs text-muted-foreground mb-2">
+            These do not count toward the 24-tray limit.
+          </p>
+          <div className="text-xs text-muted-foreground space-y-1">
+            <p><strong>Examples:</strong></p>
+            <p>• 250g packet = ₹500 (250g × ₹2)</p>
+            <p>• 500g packet = ₹1,000 (500g × ₹2)</p>
+            <p>• 1kg (1000g) packet = ₹2,000 (1000g × ₹2)</p>
+          </div>
+        </div>
 
         <div className="flex items-center space-x-2 mb-4">
           <Checkbox
@@ -251,40 +263,59 @@ export const DishSelection = ({ dishes, setDishes, numPackets, setNumPackets, fr
         </div>
 
         {freezeDriedPaneer.enabled && (
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="paneer-packets" className="text-sm">Number of packets</Label>
-              <Input
-                id="paneer-packets"
-                type="number"
-                min="1"
-                max="100"
-                value={freezeDriedPaneer.packets || ''}
-                onChange={(e) => {
-                  const packets = Number(e.target.value);
-                  setFreezeDriedPaneer({ ...freezeDriedPaneer, packets });
-                }}
-                placeholder="e.g., 5"
-                className="mt-1"
-              />
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="paneer-packets" className="text-sm">Number of packets</Label>
+                <Input
+                  id="paneer-packets"
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={freezeDriedPaneer.packets || ''}
+                  onChange={(e) => {
+                    const packets = Number(e.target.value);
+                    setFreezeDriedPaneer({ ...freezeDriedPaneer, packets });
+                  }}
+                  placeholder="e.g., 5"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="paneer-grams" className="text-sm">Grams per packet</Label>
+                <Input
+                  id="paneer-grams"
+                  type="number"
+                  min="50"
+                  max="2000"
+                  step="50"
+                  value={freezeDriedPaneer.gramsPerPacket || ''}
+                  onChange={(e) => {
+                    const grams = Number(e.target.value);
+                    setFreezeDriedPaneer({ ...freezeDriedPaneer, gramsPerPacket: grams });
+                  }}
+                  placeholder="e.g., 250"
+                  className="mt-1"
+                />
+              </div>
             </div>
-            <div>
-              <Label htmlFor="paneer-grams" className="text-sm">Grams per packet</Label>
-              <Input
-                id="paneer-grams"
-                type="number"
-                min="50"
-                max="2000"
-                step="50"
-                value={freezeDriedPaneer.gramsPerPacket || ''}
-                onChange={(e) => {
-                  const grams = Number(e.target.value);
-                  setFreezeDriedPaneer({ ...freezeDriedPaneer, gramsPerPacket: grams });
-                }}
-                placeholder="e.g., 250"
-                className="mt-1"
-              />
-            </div>
+
+            {/* Cost Preview */}
+            {freezeDriedPaneer.packets > 0 && freezeDriedPaneer.gramsPerPacket > 0 && (
+              <div className="p-3 bg-primary/10 rounded-md border border-primary/20">
+                <div className="text-sm space-y-1">
+                  <p className="text-foreground">
+                    <strong>Cost Calculation:</strong>
+                  </p>
+                  <p className="text-muted-foreground">
+                    {freezeDriedPaneer.packets} packet{freezeDriedPaneer.packets > 1 ? 's' : ''} × {freezeDriedPaneer.gramsPerPacket}g × ₹2/g
+                  </p>
+                  <p className="text-lg font-bold text-primary">
+                    Total: ₹{(freezeDriedPaneer.packets * freezeDriedPaneer.gramsPerPacket * 2).toLocaleString('en-IN')}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

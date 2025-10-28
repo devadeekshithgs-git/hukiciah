@@ -9,7 +9,7 @@ const rules = [
   'All orders accepted at 1 PM daily',
   'Saturday Special: Minimum 6 trays required unless 6+ trays already booked. Saturday deliveries: Monday.',
   'Only vegetarian food accepted',
-  'If sending paneer, we recommend using our freeze-dried paneer; homemade paneer may crumble',
+  'If sending paneer, we recommend using our freeze-dried paneer at ₹2 per gram (e.g., 250g = ₹500); homemade paneer may crumble',
   'Operations only within Bengaluru',
   'Self deliveries and self pick-ups: Customers are responsible for delivery/pickup logistics unless otherwise arranged',
 ];

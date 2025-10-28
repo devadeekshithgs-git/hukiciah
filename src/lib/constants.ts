@@ -30,6 +30,12 @@ export const VACUUM_PACKING_PRICE_BULK = 80; // ₹80 per packet if >10 packets
 export const VACUUM_PACKING_BULK_THRESHOLD = 10;
 
 // Freeze-dried paneer pricing
+// Base rate: ₹2 per gram
+// Examples:
+//   - 250g packet = ₹500 (250 × ₹2)
+//   - 500g packet = ₹1,000 (500 × ₹2)
+//   - 1kg packet = ₹2,000 (1000 × ₹2)
+// Formula: total_cost = packets × grams_per_packet × FREEZE_DRIED_PANEER_PRICE_PER_GRAM
 export const FREEZE_DRIED_PANEER_PRICE_PER_GRAM = 2; // ₹2 per gram
 
 // Vacuum packing eligible items
