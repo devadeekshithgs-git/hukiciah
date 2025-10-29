@@ -69,7 +69,7 @@ export const PackingCosts = ({
 
   // Calculate freeze-dried paneer cost
   const calculateFreezeDriedCost = (): number => {
-    if (!freezeDriedPaneer.enabled || freezeDriedPaneer.packets === 0 || freezeDriedPaneer.gramsPerPacket === 0) {
+    if (!freezeDriedPaneer.enabled || freezeDriedPaneer.gramsPerPacket < 10) {
       return 0;
     }
     return freezeDriedPaneer.packets * freezeDriedPaneer.gramsPerPacket * FREEZE_DRIED_PANEER_PRICE_PER_GRAM;
@@ -197,7 +197,7 @@ export const PackingCosts = ({
       }
 
       // Create freeze-dried paneer order if enabled
-      if (freezeDriedPaneer.enabled && freezeDriedPaneer.packets > 0) {
+      if (freezeDriedPaneer.enabled && freezeDriedPaneer.gramsPerPacket >= 10) {
         const { error: paneerError } = await supabase
           .from('freeze_dried_orders')
           .insert({
@@ -470,7 +470,7 @@ export const PackingCosts = ({
               )}
               {freezeDriedCost > 0 && (
                 <div className="text-xs text-muted-foreground p-2 bg-background/50 rounded border border-border">
-                  <strong>Freeze-Dried Paneer:</strong> {freezeDriedPaneer.packets} packet{freezeDriedPaneer.packets > 1 ? 's' : ''} × {freezeDriedPaneer.gramsPerPacket}g @ ₹2/g
+                  <strong>Freeze-Dried Paneer:</strong> {freezeDriedPaneer.gramsPerPacket}g @ ₹2/g
                 </div>
               )}
             </div>
@@ -494,7 +494,7 @@ export const PackingCosts = ({
               {freezeDriedCost > 0 && (
                 <div className="flex justify-between">
                   <span className="text-foreground">
-                    Freeze-Dried Paneer ({freezeDriedPaneer.packets} × {freezeDriedPaneer.gramsPerPacket}g × ₹2/g):
+                    Freeze-Dried Paneer ({freezeDriedPaneer.gramsPerPacket}g × ₹2/g):
                   </span>
                   <span className="font-semibold text-foreground">₹{freezeDriedCost.toLocaleString('en-IN')}</span>
                 </div>
@@ -534,6 +534,7 @@ export const PackingCosts = ({
       <CancellationPolicyDialog
         open={showCancellationDialog}
         onAccept={handleCancellationAccept}
+        onClose={() => setShowCancellationDialog(false)}
         totalCost={subtotal}
       />
 

@@ -245,14 +245,14 @@ export const DishSelection = ({ dishes, setDishes, numPackets, setNumPackets, fr
           </div>
         </div>
 
-        <div className="flex items-center space-x-2 mb-4">
+      <div className="flex items-center space-x-2 mb-4">
           <Checkbox
             id="freeze-dried-paneer"
             checked={freezeDriedPaneer.enabled}
             onCheckedChange={(checked) => {
               setFreezeDriedPaneer({
                 enabled: checked as boolean,
-                packets: checked ? freezeDriedPaneer.packets : 0,
+                packets: 1,
                 gramsPerPacket: checked ? freezeDriedPaneer.gramsPerPacket : 0,
               });
             }}
@@ -264,54 +264,39 @@ export const DishSelection = ({ dishes, setDishes, numPackets, setNumPackets, fr
 
         {freezeDriedPaneer.enabled && (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="paneer-packets" className="text-sm">Number of packets</Label>
-                <Input
-                  id="paneer-packets"
-                  type="number"
-                  min="1"
-                  max="100"
-                  value={freezeDriedPaneer.packets || ''}
-                  onChange={(e) => {
-                    const packets = Number(e.target.value);
-                    setFreezeDriedPaneer({ ...freezeDriedPaneer, packets });
-                  }}
-                  placeholder="e.g., 5"
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="paneer-grams" className="text-sm">Grams per packet</Label>
-                <Input
-                  id="paneer-grams"
-                  type="number"
-                  min="50"
-                  max="2000"
-                  step="50"
-                  value={freezeDriedPaneer.gramsPerPacket || ''}
-                  onChange={(e) => {
-                    const grams = Number(e.target.value);
-                    setFreezeDriedPaneer({ ...freezeDriedPaneer, gramsPerPacket: grams });
-                  }}
-                  placeholder="e.g., 250"
-                  className="mt-1"
-                />
-              </div>
+            <div>
+              <Label htmlFor="paneer-grams" className="text-sm">Total grams required</Label>
+              <Input
+                id="paneer-grams"
+                type="number"
+                min="10"
+                max="5000"
+                step="10"
+                value={freezeDriedPaneer.gramsPerPacket || ''}
+                onChange={(e) => {
+                  const grams = Number(e.target.value);
+                  setFreezeDriedPaneer({ ...freezeDriedPaneer, packets: 1, gramsPerPacket: grams });
+                }}
+                placeholder="Minimum 10g"
+                className="mt-1"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Minimum order: 10 grams
+              </p>
             </div>
 
             {/* Cost Preview */}
-            {freezeDriedPaneer.packets > 0 && freezeDriedPaneer.gramsPerPacket > 0 && (
+            {freezeDriedPaneer.gramsPerPacket >= 10 && (
               <div className="p-3 bg-primary/10 rounded-md border border-primary/20">
                 <div className="text-sm space-y-1">
                   <p className="text-foreground">
                     <strong>Cost Calculation:</strong>
                   </p>
                   <p className="text-muted-foreground">
-                    {freezeDriedPaneer.packets} packet{freezeDriedPaneer.packets > 1 ? 's' : ''} × {freezeDriedPaneer.gramsPerPacket}g × ₹2/g
+                    {freezeDriedPaneer.gramsPerPacket}g × ₹2/g
                   </p>
                   <p className="text-lg font-bold text-primary">
-                    Total: ₹{(freezeDriedPaneer.packets * freezeDriedPaneer.gramsPerPacket * 2).toLocaleString('en-IN')}
+                    Total: ₹{(freezeDriedPaneer.gramsPerPacket * 2).toLocaleString('en-IN')}
                   </p>
                 </div>
               </div>

@@ -12,19 +12,21 @@ import { Checkbox } from '@/components/ui/checkbox';
 interface CancellationPolicyDialogProps {
   open: boolean;
   onAccept: () => void;
+  onClose: () => void;
   totalCost: number;
 }
 
 export const CancellationPolicyDialog = ({
   open,
   onAccept,
+  onClose,
   totalCost,
 }: CancellationPolicyDialogProps) => {
   const [accepted, setAccepted] = useState(false);
   const creditAmount = Math.round(totalCost * 0.5);
 
   return (
-    <Dialog open={open} onOpenChange={() => {}}>
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="bg-background">
         <DialogHeader>
           <DialogTitle className="text-foreground text-xl">Cancellation Policy</DialogTitle>

@@ -139,23 +139,31 @@ const Profile = () => {
   return (
     <div className="min-h-screen bg-background">
       <div className="bg-card border-b border-border p-4">
-        <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <Logo size="sm" />
-          <div className="flex gap-4">
-            <Button variant="outline" onClick={() => navigate('/booking')}>
-              New Booking
-            </Button>
-            <Button
-              variant="outline"
-              onClick={async () => {
-                await supabase.auth.signOut();
-                navigate('/auth');
-              }}
-            >
-              Logout
-            </Button>
-          </div>
+      <div className="max-w-6xl mx-auto flex justify-between items-center">
+        <Logo size="sm" />
+        <div className="flex gap-4">
+          <Button variant="outline" onClick={() => {
+            // Check if rules have been accepted
+            const rulesAccepted = sessionStorage.getItem('huki_rules_accepted');
+            if (rulesAccepted) {
+              navigate('/booking');
+            } else {
+              navigate('/welcome');
+            }
+          }}>
+            New Booking
+          </Button>
+          <Button
+            variant="outline"
+            onClick={async () => {
+              await supabase.auth.signOut();
+              navigate('/auth');
+            }}
+          >
+            Logout
+          </Button>
         </div>
+      </div>
       </div>
 
       <div className="max-w-4xl mx-auto p-6 space-y-6">

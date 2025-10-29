@@ -42,13 +42,13 @@ const Auth = () => {
           if (data?.role === 'admin') {
             navigate('/admin');
           } else {
-            navigate('/welcome');
+            navigate('/profile');
           }
         } catch (error) {
           if (import.meta.env.DEV) {
             console.error('Error checking user role:', error);
           }
-          navigate('/welcome');
+          navigate('/profile');
         }
       }
     };
