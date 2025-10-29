@@ -50,6 +50,7 @@ export const PackingCosts = ({
   const [showCancellationDialog, setShowCancellationDialog] = useState(false);
   const [showPaymentConfirmation, setShowPaymentConfirmation] = useState(false);
   const [showDeliveryDialog, setShowDeliveryDialog] = useState(false);
+  const [deliveryMethod, setDeliveryMethod] = useState<string>('');
   const [completedBooking, setCompletedBooking] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   
@@ -126,12 +127,18 @@ export const PackingCosts = ({
     setShowCancellationDialog(true);
   };
 
-  const handleCancellationAccept = async () => {
+  const handleCancellationAccept = () => {
     setShowCancellationDialog(false);
-    await processBooking();
+    setShowDeliveryDialog(true);
   };
 
-  const processBooking = async () => {
+  const handleDeliveryConfirm = async (method: string) => {
+    setDeliveryMethod(method);
+    setShowDeliveryDialog(false);
+    await processBooking(method);
+  };
+
+  const processBooking = async (selectedDeliveryMethod: string) => {
     if (!user || !selectedDate) return;
 
     try {
@@ -184,6 +191,7 @@ export const PackingCosts = ({
           payment_status: paymentMethod === 'online' && profile?.payment_required !== false ? 'pending' : 'completed',
           status: 'active',
           vacuum_packing: vacuumPackingData,
+          delivery_method: selectedDeliveryMethod,
         })
         .select()
         .single();
@@ -248,7 +256,7 @@ export const PackingCosts = ({
         
         setTimeout(() => {
           setShowPaymentConfirmation(false);
-          setShowDeliveryDialog(true);
+          window.location.href = '/profile';
         }, 3000);
         
         await sendToGoogleSheets(booking, 0);
@@ -279,7 +287,7 @@ export const PackingCosts = ({
         
         setTimeout(() => {
           setShowPaymentConfirmation(false);
-          setShowDeliveryDialog(true);
+          window.location.href = '/profile';
         }, 3000);
         
         await sendToGoogleSheets(booking, 0);
@@ -329,7 +337,7 @@ export const PackingCosts = ({
             
             setTimeout(() => {
               setShowPaymentConfirmation(false);
-              setShowDeliveryDialog(true);
+              window.location.href = '/profile';
             }, 3000);
             
             await sendToGoogleSheets(booking, orderData.amount);
@@ -413,19 +421,6 @@ export const PackingCosts = ({
     }
   };
 
-  const handleDeliveryConfirm = async (method: string) => {
-    if (completedBooking) {
-      await supabase
-        .from('bookings')
-        .update({ delivery_method: method })
-        .eq('id', completedBooking.id);
-      
-      setShowDeliveryDialog(false);
-      setTimeout(() => {
-        window.location.href = '/profile';
-      }, 500);
-    }
-  };
 
   return (
     <>
