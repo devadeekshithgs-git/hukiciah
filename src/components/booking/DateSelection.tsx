@@ -27,6 +27,53 @@ export const DateSelection = ({
   setAllocatedTrays,
   setBookedTraysForDate,
 }: DateSelectionProps) => {
+  const [realtimeKey, setRealtimeKey] = useState(0);
+
+  // Real-time subscription for instant updates
+  useEffect(() => {
+    const bookingsChannel = supabase
+      .channel('customer-bookings-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'bookings',
+        },
+        () => {
+          setRealtimeKey(prev => prev + 1);
+          // Re-validate current selection if date is selected
+          if (selectedDate) {
+            handleDateSelect(selectedDate);
+          }
+        }
+      )
+      .subscribe();
+
+    const configChannel = supabase
+      .channel('customer-calendar-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'calendar_config',
+        },
+        () => {
+          setRealtimeKey(prev => prev + 1);
+          if (selectedDate) {
+            handleDateSelect(selectedDate);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(bookingsChannel);
+      supabase.removeChannel(configChannel);
+    };
+  }, [selectedDate]);
+
   const getBookedTraysForDate = async (date: Date): Promise<number[]> => {
     const dateStr = formatDate(date);
     
@@ -45,13 +92,14 @@ export const DateSelection = ({
 
     const bookedFromBookings = trayAvailability?.flatMap(b => b.tray_numbers) || [];
     
-    // Get blocked trays
-    const { data: blockedTrays } = await supabase
-      .from('blocked_trays')
-      .select('*')
-      .eq('date', dateStr);
+    // Get blocked trays from calendar_config
+    const { data: calendarConfig } = await supabase
+      .from('calendar_config')
+      .select('blocked_trays')
+      .eq('date', dateStr)
+      .maybeSingle();
     
-    const blockedTrayNumbers = blockedTrays?.flatMap(b => b.tray_numbers) || [];
+    const blockedTrayNumbers = calendarConfig?.blocked_trays || [];
     
     return [...bookedFromBookings, ...blockedTrayNumbers];
   };

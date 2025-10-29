@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,9 +9,10 @@ import { Loader2 } from 'lucide-react';
 
 const AdminTrayManagement = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [realtimeKey, setRealtimeKey] = useState(0);
 
-  const { data: bookingsData, isLoading: bookingsLoading } = useQuery({
-    queryKey: ['tray-bookings', selectedDate],
+  const { data: bookingsData, isLoading: bookingsLoading, refetch: refetchBookings } = useQuery({
+    queryKey: ['tray-bookings', selectedDate, realtimeKey],
     queryFn: async () => {
       if (!selectedDate) return [];
 
@@ -42,8 +43,8 @@ const AdminTrayManagement = () => {
     enabled: !!selectedDate,
   });
 
-  const { data: calendarConfig, isLoading: configLoading } = useQuery({
-    queryKey: ['calendar-config', selectedDate],
+  const { data: calendarConfig, isLoading: configLoading, refetch: refetchConfig } = useQuery({
+    queryKey: ['calendar-config', selectedDate, realtimeKey],
     queryFn: async () => {
       if (!selectedDate) return null;
 
@@ -60,8 +61,50 @@ const AdminTrayManagement = () => {
     enabled: !!selectedDate,
   });
 
+  // Real-time subscription for instant updates
+  useEffect(() => {
+    const bookingsChannel = supabase
+      .channel('admin-bookings-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'bookings',
+        },
+        () => {
+          setRealtimeKey(prev => prev + 1);
+        }
+      )
+      .subscribe();
+
+    const configChannel = supabase
+      .channel('admin-calendar-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'calendar_config',
+        },
+        () => {
+          setRealtimeKey(prev => prev + 1);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(bookingsChannel);
+      supabase.removeChannel(configChannel);
+    };
+  }, []);
+
   const isLoading = bookingsLoading || configLoading;
   const bookedTrays = bookingsData?.filter(b => b.payment_status === 'completed').length || 0;
+
+  const handleUpdate = () => {
+    setRealtimeKey(prev => prev + 1);
+  };
 
   return (
     <div className="space-y-6">
@@ -107,6 +150,7 @@ const AdminTrayManagement = () => {
                 blockedTrays={calendarConfig?.blocked_trays || []}
                 isHoliday={calendarConfig?.is_holiday || false}
                 selectedDate={selectedDate || new Date()}
+                onUpdate={handleUpdate}
               />
             )}
           </CardContent>

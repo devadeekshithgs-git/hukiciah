@@ -1,14 +1,23 @@
+import { useState } from 'react';
 import { calculateTrayStatus, getTrayStatusColor } from '@/lib/utils/adminUtils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { format } from 'date-fns';
 
 interface AdminTrayGridProps {
   bookings: any[];
   blockedTrays: number[];
   isHoliday: boolean;
   selectedDate: Date;
+  onUpdate: () => void;
 }
 
-const AdminTrayGrid = ({ bookings, blockedTrays, isHoliday, selectedDate }: AdminTrayGridProps) => {
+const AdminTrayGrid = ({ bookings, blockedTrays, isHoliday, selectedDate, onUpdate }: AdminTrayGridProps) => {
+  const [editMode, setEditMode] = useState(false);
+  const [selectedTrays, setSelectedTrays] = useState<number[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
   const trays = Array.from({ length: 50 }, (_, i) => i + 1);
 
   const getBookingForTray = (trayNumber: number) => {
@@ -17,11 +26,111 @@ const AdminTrayGrid = ({ bookings, blockedTrays, isHoliday, selectedDate }: Admi
     );
   };
 
+  const getTrayDisplayStatus = (trayNumber: number) => {
+    if (editMode && selectedTrays.includes(trayNumber)) return 'selected';
+    return calculateTrayStatus(trayNumber, bookings, blockedTrays, isHoliday);
+  };
+
+  const handleTrayClick = (trayNumber: number) => {
+    if (!editMode) return;
+    
+    const booking = getBookingForTray(trayNumber);
+    if (booking) {
+      toast.error('Cannot block a booked tray');
+      return;
+    }
+    
+    if (isHoliday) {
+      toast.error('Cannot modify trays on holiday');
+      return;
+    }
+
+    if (selectedTrays.includes(trayNumber)) {
+      setSelectedTrays(selectedTrays.filter(t => t !== trayNumber));
+    } else {
+      setSelectedTrays([...selectedTrays, trayNumber]);
+    }
+  };
+
+  const handleSaveBlocking = async () => {
+    setIsSaving(true);
+    try {
+      const dateStr = format(selectedDate, 'yyyy-MM-dd');
+      
+      const { data: existing } = await supabase
+        .from('calendar_config')
+        .select('*')
+        .eq('date', dateStr)
+        .maybeSingle();
+
+      if (existing) {
+        const { error } = await supabase
+          .from('calendar_config')
+          .update({ blocked_trays: selectedTrays })
+          .eq('id', existing.id);
+        
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('calendar_config')
+          .insert({
+            date: dateStr,
+            blocked_trays: selectedTrays,
+            is_holiday: false,
+          });
+        
+        if (error) throw error;
+      }
+
+      toast.success('Tray blocking updated');
+      setEditMode(false);
+      setSelectedTrays([]);
+      onUpdate();
+    } catch (error) {
+      if (import.meta.env.DEV) console.error('Error saving blocked trays:', error);
+      toast.error('Failed to update tray blocking');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {/* Edit Mode Controls */}
+      <div className="flex gap-3 justify-end">
+        {!editMode ? (
+          <Button onClick={() => {
+            setEditMode(true);
+            setSelectedTrays([...blockedTrays]);
+          }}>
+            Edit Tray Blocking
+          </Button>
+        ) : (
+          <>
+            <Button variant="outline" onClick={() => {
+              setEditMode(false);
+              setSelectedTrays([]);
+            }}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveBlocking} disabled={isSaving}>
+              {isSaving ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </>
+        )}
+      </div>
+
+      {editMode && (
+        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+          <p className="text-sm text-foreground">
+            <strong>Edit Mode:</strong> Click on available trays to block/unblock them. Currently blocking: {selectedTrays.length} trays
+          </p>
+        </div>
+      )}
+
       <div className="grid grid-cols-5 gap-3">
         {trays.map((trayNumber) => {
-          const status = calculateTrayStatus(trayNumber, bookings, blockedTrays, isHoliday);
+          const status = getTrayDisplayStatus(trayNumber);
           const booking = getBookingForTray(trayNumber);
           const color = getTrayStatusColor(status);
 
@@ -30,11 +139,16 @@ const AdminTrayGrid = ({ bookings, blockedTrays, isHoliday, selectedDate }: Admi
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div
-                    className="aspect-square rounded-lg flex items-center justify-center text-lg font-bold border-2 cursor-pointer transition-transform hover:scale-105"
+                    onClick={() => handleTrayClick(trayNumber)}
+                    className={`aspect-square rounded-lg flex items-center justify-center text-lg font-bold border-2 transition-all ${
+                      editMode && status === 'available' ? 'cursor-pointer hover:scale-105' : ''
+                    } ${
+                      editMode && (status === 'booked' || status === 'holiday') ? 'cursor-not-allowed opacity-60' : ''
+                    }`}
                     style={{
                       backgroundColor: color,
-                      color: status === 'available' || status === 'booked' ? 'white' : 'hsl(var(--foreground))',
-                      borderColor: status === 'booked' ? 'hsl(var(--destructive))' : 'transparent',
+                      color: status === 'available' ? 'hsl(var(--foreground))' : 'white',
+                      borderColor: status === 'available' ? 'hsl(var(--border))' : 'transparent',
                     }}
                   >
                     {trayNumber}
@@ -47,7 +161,7 @@ const AdminTrayGrid = ({ bookings, blockedTrays, isHoliday, selectedDate }: Admi
                       <p className="text-sm">{booking.profile?.email}</p>
                       <p className="text-sm">{booking.profile?.mobile_number}</p>
                       <p className="text-sm font-medium">
-                        Payment: {booking.payment_method === 'online' ? 'Online' : booking.payment_method === 'request_only' ? 'Request' : 'COD'}
+                        Payment: {booking.payment_method === 'online' ? 'Online' : 'Online'}
                       </p>
                       <p className="text-sm font-bold">₹{Number(booking.total_cost).toFixed(2)}</p>
                     </div>
@@ -64,24 +178,26 @@ const AdminTrayGrid = ({ bookings, blockedTrays, isHoliday, selectedDate }: Admi
         <div className="flex items-center gap-2">
           <div
             className="w-6 h-6 rounded border-2"
-            style={{ backgroundColor: getTrayStatusColor('available') }}
+            style={{ backgroundColor: 'transparent', borderColor: 'hsl(var(--border))' }}
           />
           <span className="text-sm">Available</span>
         </div>
         <div className="flex items-center gap-2">
           <div
             className="w-6 h-6 rounded border-2"
-            style={{ backgroundColor: getTrayStatusColor('booked'), borderColor: 'hsl(var(--destructive))' }}
+            style={{ backgroundColor: getTrayStatusColor('booked') }}
           />
-          <span className="text-sm">Booked</span>
+          <span className="text-sm">Booked/Reserved</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div
-            className="w-6 h-6 rounded border-2"
-            style={{ backgroundColor: getTrayStatusColor('blocked') }}
-          />
-          <span className="text-sm">Blocked</span>
-        </div>
+        {editMode && (
+          <div className="flex items-center gap-2">
+            <div
+              className="w-6 h-6 rounded border-2"
+              style={{ backgroundColor: getTrayStatusColor('selected') }}
+            />
+            <span className="text-sm">Selected for Blocking</span>
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <div
             className="w-6 h-6 rounded border-2"

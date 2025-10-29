@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/AuthProvider';
 import { TRAY_CAPACITY } from '@/lib/constants';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface TrayVisualizationProps {
   allocatedTrays: number[];
@@ -26,15 +27,56 @@ export const TrayVisualization = ({
   const { user } = useAuth();
   const [manualMode, setManualMode] = useState(false);
   const [selectedTrays, setSelectedTrays] = useState<number[]>(allocatedTrays);
+  const [realtimeBookedTrays, setRealtimeBookedTrays] = useState<number[]>(bookedTrays);
+
+  // Real-time subscription for instant tray availability updates
+  useEffect(() => {
+    if (!selectedDate) return;
+
+    const channel = supabase
+      .channel('customer-tray-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'bookings',
+        },
+        async () => {
+          // Refetch booked trays for current date
+          const dateStr = selectedDate.toISOString().split('T')[0];
+          const { data } = await supabase
+            .from('bookings')
+            .select('tray_numbers')
+            .eq('booking_date', dateStr)
+            .eq('payment_status', 'completed');
+
+          const booked = data?.flatMap(b => b.tray_numbers || []) || [];
+          setRealtimeBookedTrays(booked);
+          
+          // Check if any selected trays are now booked
+          const conflictingTrays = selectedTrays.filter(t => booked.includes(t));
+          if (conflictingTrays.length > 0 && manualMode) {
+            toast.error(`Trays ${conflictingTrays.join(', ')} just got booked. Please select different trays.`);
+            setSelectedTrays(selectedTrays.filter(t => !booked.includes(t)));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedDate, selectedTrays, manualMode]);
 
   const getTrayStatus = (trayNumber: number): 'selected' | 'booked' | 'available' => {
     if (manualMode) {
       if (selectedTrays.includes(trayNumber)) return 'selected';
-      if (bookedTrays.includes(trayNumber)) return 'booked';
+      if (realtimeBookedTrays.includes(trayNumber)) return 'booked';
       return 'available';
     } else {
       if (allocatedTrays.includes(trayNumber)) return 'selected';
-      if (bookedTrays.includes(trayNumber)) return 'booked';
+      if (realtimeBookedTrays.includes(trayNumber)) return 'booked';
       return 'available';
     }
   };

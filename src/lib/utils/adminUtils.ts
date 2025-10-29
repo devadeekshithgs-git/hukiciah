@@ -122,14 +122,16 @@ export function calculateTrayStatus(
 export function getTrayStatusColor(status: string): string {
   switch (status) {
     case 'available':
-      return 'hsl(var(--primary))'; // Orange
+      return 'transparent'; // No color for available
     case 'booked':
-      return 'hsl(var(--destructive))'; // Red
+      return 'hsl(0 0% 62%)'; // Grey for booked/reserved
     case 'blocked':
-      return 'hsl(0 0% 62%)'; // Gray
+      return 'hsl(0 0% 62%)'; // Grey for blocked (same as booked)
+    case 'selected':
+      return 'hsl(142 71% 45%)'; // Green for selected
     case 'holiday':
       return 'hsl(0 85% 95%)'; // Light pink
     default:
-      return 'hsl(var(--muted))';
+      return 'transparent';
   }
 }
