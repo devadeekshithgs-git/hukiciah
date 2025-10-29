@@ -86,6 +86,10 @@ export const DishSelection = ({ dishes, setDishes, numPackets, setNumPackets, fr
       toast.error('Please add at least one tray');
       return;
     }
+    if (freezeDriedPaneer.enabled && freezeDriedPaneer.gramsPerPacket < 10) {
+      toast.error('Freeze-dried paneer minimum order is 10 grams');
+      return;
+    }
     onNext();
   };
 
