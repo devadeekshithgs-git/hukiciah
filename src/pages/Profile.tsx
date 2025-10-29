@@ -141,28 +141,15 @@ const Profile = () => {
       <div className="bg-card border-b border-border p-4">
       <div className="max-w-6xl mx-auto flex justify-between items-center">
         <Logo size="sm" />
-        <div className="flex gap-4">
-          <Button variant="outline" onClick={() => {
-            // Check if rules have been accepted
-            const rulesAccepted = sessionStorage.getItem('huki_rules_accepted');
-            if (rulesAccepted) {
-              navigate('/booking');
-            } else {
-              navigate('/welcome');
-            }
-          }}>
-            New Booking
-          </Button>
-          <Button
-            variant="outline"
-            onClick={async () => {
-              await supabase.auth.signOut();
-              navigate('/auth');
-            }}
-          >
-            Logout
-          </Button>
-        </div>
+        <Button
+          variant="outline"
+          onClick={async () => {
+            await supabase.auth.signOut();
+            navigate('/auth');
+          }}
+        >
+          Logout
+        </Button>
       </div>
       </div>
 
@@ -194,9 +181,25 @@ const Profile = () => {
         )}
 
         <Card className="p-6">
-          <h2 className="text-2xl font-bold text-foreground mb-4">My Bookings</h2>
+          <div className="flex flex-col items-center gap-4 mb-6">
+            <h2 className="text-2xl font-bold text-foreground">My Bookings</h2>
+            <Button 
+              variant="default" 
+              size="lg"
+              onClick={() => {
+                const rulesAccepted = sessionStorage.getItem('huki_rules_accepted');
+                if (rulesAccepted) {
+                  navigate('/booking');
+                } else {
+                  navigate('/welcome');
+                }
+              }}
+            >
+              New Booking
+            </Button>
+          </div>
           {bookings.length === 0 ? (
-            <p className="text-muted-foreground">No bookings yet</p>
+            <p className="text-muted-foreground text-center">No bookings yet</p>
           ) : (
             <div className="space-y-4">
               {bookings.map((booking) => {

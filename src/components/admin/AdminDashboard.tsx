@@ -13,6 +13,7 @@ import { format, parseISO } from 'date-fns';
 import { getDateRange, exportBookingsCSV, type TimeFilter } from '@/lib/utils/adminUtils';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AdminBookingDetailsDialog } from './BookingDetailsDialog';
 
 const AdminDashboard = () => {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
@@ -20,6 +21,8 @@ const AdminDashboard = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [paymentFilter, setPaymentFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const itemsPerPage = 10;
 
   const dateRange = getDateRange(timeFilter);
@@ -284,6 +287,7 @@ const AdminDashboard = () => {
                   <TableHead>Order ID</TableHead>
                   <TableHead>Customer</TableHead>
                   <TableHead>Contact</TableHead>
+                  <TableHead>Dishes</TableHead>
                   <TableHead>Trays</TableHead>
                   <TableHead>Packets</TableHead>
                   <TableHead>Appointment</TableHead>
@@ -300,11 +304,25 @@ const AdminDashboard = () => {
                     (booking.freeze_dried_orders?.[0]?.total_packets || 0);
 
                   return (
-                    <TableRow key={booking.id}>
+                    <TableRow 
+                      key={booking.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => {
+                        setSelectedBooking(booking);
+                        setDetailsDialogOpen(true);
+                      }}
+                    >
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <span className="font-mono text-sm">{booking.id.substring(0, 8)}</span>
-                          <Button variant="ghost" size="sm" onClick={() => copyOrderId(booking.id)}>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              copyOrderId(booking.id);
+                            }}
+                          >
                             <Copy className="h-3 w-3" />
                           </Button>
                         </div>
@@ -314,6 +332,15 @@ const AdminDashboard = () => {
                         <div className="text-sm space-y-1">
                           <div>{booking.profile?.email}</div>
                           <div className="text-muted-foreground">{booking.profile?.mobile_number}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-xs space-y-1 max-w-xs">
+                          {booking.dishes && Array.isArray(booking.dishes) && booking.dishes.map((dish: any, idx: number) => (
+                            <div key={idx} className="text-muted-foreground">
+                              {dish.name} ({dish.quantity})
+                            </div>
+                          ))}
                         </div>
                       </TableCell>
                       <TableCell>{booking.total_trays}</TableCell>
@@ -368,6 +395,12 @@ const AdminDashboard = () => {
           </div>
         </CardContent>
       </Card>
+
+      <AdminBookingDetailsDialog
+        booking={selectedBooking}
+        open={detailsDialogOpen}
+        onOpenChange={setDetailsDialogOpen}
+      />
     </div>
   );
 };

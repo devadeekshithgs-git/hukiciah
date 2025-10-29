@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { AdminTrayBookingDialog } from './AdminTrayBookingDialog';
+import { AdminBookingDetailsDialog } from './BookingDetailsDialog';
 
 interface AdminTrayGridProps {
   bookings: any[];
@@ -18,6 +20,9 @@ const AdminTrayGrid = ({ bookings, blockedTrays, isHoliday, selectedDate, onUpda
   const [editMode, setEditMode] = useState(false);
   const [selectedTrays, setSelectedTrays] = useState<number[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const trays = Array.from({ length: 50 }, (_, i) => i + 1);
 
   const getBookingForTray = (trayNumber: number) => {
@@ -32,9 +37,17 @@ const AdminTrayGrid = ({ bookings, blockedTrays, isHoliday, selectedDate, onUpda
   };
 
   const handleTrayClick = (trayNumber: number) => {
+    const booking = getBookingForTray(trayNumber);
+    
+    // If not in edit mode and tray is booked, show details
+    if (!editMode && booking) {
+      setSelectedBooking(booking);
+      setDetailsDialogOpen(true);
+      return;
+    }
+    
     if (!editMode) return;
     
-    const booking = getBookingForTray(trayNumber);
     if (booking) {
       toast.error('Cannot block a booked tray');
       return;
@@ -99,12 +112,17 @@ const AdminTrayGrid = ({ bookings, blockedTrays, isHoliday, selectedDate, onUpda
       {/* Edit Mode Controls */}
       <div className="flex gap-3 justify-end">
         {!editMode ? (
-          <Button onClick={() => {
-            setEditMode(true);
-            setSelectedTrays([...blockedTrays]);
-          }}>
-            Edit Tray Blocking
-          </Button>
+          <>
+            <Button variant="outline" onClick={() => setBookingDialogOpen(true)}>
+              Create Admin Booking
+            </Button>
+            <Button onClick={() => {
+              setEditMode(true);
+              setSelectedTrays([...blockedTrays]);
+            }}>
+              Edit Tray Blocking
+            </Button>
+          </>
         ) : (
           <>
             <Button variant="outline" onClick={() => {
@@ -141,9 +159,11 @@ const AdminTrayGrid = ({ bookings, blockedTrays, isHoliday, selectedDate, onUpda
                   <div
                     onClick={() => handleTrayClick(trayNumber)}
                     className={`aspect-square rounded-lg flex items-center justify-center text-lg font-bold border-2 transition-all ${
+                      booking ? 'cursor-pointer hover:scale-105' : ''
+                    } ${
                       editMode && status === 'available' ? 'cursor-pointer hover:scale-105' : ''
                     } ${
-                      editMode && (status === 'booked' || status === 'holiday') ? 'cursor-not-allowed opacity-60' : ''
+                      editMode && (status === 'booked' || status === 'admin-booked' || status === 'holiday') ? 'cursor-not-allowed opacity-60' : ''
                     }`}
                     style={{
                       backgroundColor: color,
@@ -187,7 +207,14 @@ const AdminTrayGrid = ({ bookings, blockedTrays, isHoliday, selectedDate, onUpda
             className="w-6 h-6 rounded border-2"
             style={{ backgroundColor: getTrayStatusColor('booked') }}
           />
-          <span className="text-sm">Booked/Reserved</span>
+          <span className="text-sm">Customer Booking</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div
+            className="w-6 h-6 rounded border-2"
+            style={{ backgroundColor: getTrayStatusColor('admin-booked') }}
+          />
+          <span className="text-sm">Admin Booking</span>
         </div>
         {editMode && (
           <div className="flex items-center gap-2">
@@ -206,6 +233,20 @@ const AdminTrayGrid = ({ bookings, blockedTrays, isHoliday, selectedDate, onUpda
           <span className="text-sm">Holiday</span>
         </div>
       </div>
+
+      <AdminTrayBookingDialog
+        open={bookingDialogOpen}
+        onOpenChange={setBookingDialogOpen}
+        selectedDate={format(selectedDate, 'yyyy-MM-dd')}
+        selectedTrays={[]}
+        onSuccess={onUpdate}
+      />
+
+      <AdminBookingDetailsDialog
+        booking={selectedBooking}
+        open={detailsDialogOpen}
+        onOpenChange={setDetailsDialogOpen}
+      />
     </div>
   );
 };

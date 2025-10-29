@@ -11,12 +11,15 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
-import { Loader2, Pencil, Trash2 } from 'lucide-react';
+import { Loader2, Pencil, Trash2, Eye } from 'lucide-react';
 import { toast } from 'sonner';
+import { AdminBookingDetailsDialog } from './BookingDetailsDialog';
 
 const AdminBookings = () => {
   const [editingBooking, setEditingBooking] = useState<any>(null);
   const [deletingBookingId, setDeletingBookingId] = useState<string | null>(null);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [editForm, setEditForm] = useState({
     status: '',
     payment_status: '',
@@ -158,6 +161,7 @@ const AdminBookings = () => {
                   <TableHead>Date</TableHead>
                   <TableHead>Customer</TableHead>
                   <TableHead>Contact</TableHead>
+                  <TableHead>Dishes</TableHead>
                   <TableHead>Trays</TableHead>
                   <TableHead>Tray Numbers</TableHead>
                   <TableHead>Extras</TableHead>
@@ -170,13 +174,25 @@ const AdminBookings = () => {
               </TableHeader>
               <TableBody>
                 {bookings?.map((booking) => (
-                  <TableRow key={booking.id}>
+                  <TableRow key={booking.id} className="cursor-pointer hover:bg-muted/50" onClick={() => {
+                    setSelectedBooking(booking);
+                    setDetailsDialogOpen(true);
+                  }}>
                     <TableCell>{format(new Date(booking.booking_date), 'MMM dd, yyyy')}</TableCell>
                     <TableCell>{booking.profile?.full_name}</TableCell>
                     <TableCell>
                       <div className="text-sm">
                         <div>{booking.profile?.email}</div>
                         <div className="text-muted-foreground">{booking.profile?.mobile_number}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-xs space-y-1 max-w-xs">
+                        {booking.dishes && Array.isArray(booking.dishes) && booking.dishes.map((dish: any, idx: number) => (
+                          <div key={idx} className="text-muted-foreground">
+                            {dish.name} - {dish.quantity} tray(s)
+                          </div>
+                        ))}
                       </div>
                     </TableCell>
                     <TableCell>{booking.total_trays}</TableCell>
@@ -237,14 +253,31 @@ const AdminBookings = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleEdit(booking)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedBooking(booking);
+                            setDetailsDialogOpen(true);
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEdit(booking);
+                          }}
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleDelete(booking.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(booking.id);
+                          }}
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
@@ -346,6 +379,12 @@ const AdminBookings = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AdminBookingDetailsDialog
+        booking={selectedBooking}
+        open={detailsDialogOpen}
+        onOpenChange={setDetailsDialogOpen}
+      />
     </>
   );
 };

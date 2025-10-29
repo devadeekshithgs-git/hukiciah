@@ -106,16 +106,18 @@ export function calculateTrayStatus(
   bookings: any[],
   blockedTrays: number[],
   isHoliday: boolean
-): 'available' | 'booked' | 'blocked' | 'holiday' {
+): 'available' | 'booked' | 'admin-booked' | 'blocked' | 'holiday' {
   if (isHoliday) return 'holiday';
   if (blockedTrays.includes(trayNumber)) return 'blocked';
   
-  const isBooked = bookings.some((booking) =>
-    booking.tray_numbers?.includes(trayNumber) && 
-    booking.payment_status === 'completed'
+  const booking = bookings.find((b) =>
+    b.tray_numbers?.includes(trayNumber) && 
+    b.payment_status === 'completed'
   );
   
-  if (isBooked) return 'booked';
+  if (booking) {
+    return booking.admin_created ? 'admin-booked' : 'booked';
+  }
   return 'available';
 }
 
@@ -124,9 +126,11 @@ export function getTrayStatusColor(status: string): string {
     case 'available':
       return 'transparent'; // No color for available
     case 'booked':
-      return 'hsl(0 0% 62%)'; // Grey for booked/reserved
+      return 'hsl(0 0% 62%)'; // Grey for customer bookings
+    case 'admin-booked':
+      return 'hsl(45 93% 47%)'; // Yellow for admin bookings
     case 'blocked':
-      return 'hsl(0 0% 62%)'; // Grey for blocked (same as booked)
+      return 'hsl(0 0% 62%)'; // Grey for blocked
     case 'selected':
       return 'hsl(142 71% 45%)'; // Green for selected
     case 'holiday':

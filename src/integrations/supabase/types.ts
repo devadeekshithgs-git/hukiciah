@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       bookings: {
         Row: {
+          admin_created: boolean | null
           applied_credit_amount: number | null
           booking_date: string
           created_at: string
@@ -38,6 +39,7 @@ export type Database = {
           vacuum_packing: Json | null
         }
         Insert: {
+          admin_created?: boolean | null
           applied_credit_amount?: number | null
           booking_date: string
           created_at?: string
@@ -60,6 +62,7 @@ export type Database = {
           vacuum_packing?: Json | null
         }
         Update: {
+          admin_created?: boolean | null
           applied_credit_amount?: number | null
           booking_date?: string
           created_at?: string
