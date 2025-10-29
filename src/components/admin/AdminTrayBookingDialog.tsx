@@ -7,6 +7,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Plus, X } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { AdminBookingDetailsDialog } from './BookingDetailsDialog';
 
 interface AdminTrayBookingDialogProps {
   open: boolean;
@@ -30,7 +32,10 @@ export const AdminTrayBookingDialog = ({ open, onOpenChange, selectedDate, onSuc
   const [dishes, setDishes] = useState<DishEntry[]>([{ name: '', trays: 0, packets: 0 }]);
   const [selectedTrays, setSelectedTrays] = useState<number[]>([]);
   const [bookedTrays, setBookedTrays] = useState<number[]>([]);
+  const [bookings, setBookings] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const trays = Array.from({ length: 50 }, (_, i) => i + 1);
 
   // Fetch booked trays for the selected date
@@ -40,23 +45,62 @@ export const AdminTrayBookingDialog = ({ open, onOpenChange, selectedDate, onSuc
     }
   }, [open, selectedDate]);
 
+  // Real-time subscription for tray updates
+  useEffect(() => {
+    if (!open || !selectedDate) return;
+
+    const channel = supabase
+      .channel('admin-tray-booking-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'bookings',
+        },
+        async () => {
+          // Refetch booked trays when any booking changes
+          await fetchBookedTrays();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [open, selectedDate]);
+
   const fetchBookedTrays = async () => {
     const { data } = await supabase
       .from('bookings')
-      .select('tray_numbers')
+      .select(`
+        *,
+        profile:profiles!bookings_user_id_fkey(full_name, email, mobile_number)
+      `)
       .eq('booking_date', selectedDate)
       .eq('payment_status', 'completed')
       .eq('status', 'active');
 
     if (data) {
+      setBookings(data);
       const allBooked = data.flatMap(b => b.tray_numbers || []);
       setBookedTrays(allBooked);
     }
   };
 
+  const getBookingForTray = (trayNumber: number) => {
+    return bookings.find(
+      (b) => b.tray_numbers?.includes(trayNumber)
+    );
+  };
+
   const handleTrayClick = (trayNumber: number) => {
-    if (bookedTrays.includes(trayNumber)) {
-      toast.error('This tray is already booked');
+    const booking = getBookingForTray(trayNumber);
+    
+    // If tray is booked, show booking details
+    if (booking) {
+      setSelectedBooking(booking);
+      setDetailsDialogOpen(true);
       return;
     }
 
@@ -109,11 +153,16 @@ export const AdminTrayBookingDialog = ({ open, onOpenChange, selectedDate, onSuc
         return;
       }
 
-      // Format dishes for database
+      // Format dishes for database with customer info embedded
       const formattedDishes = validDishes.map(d => ({
         name: d.name,
         quantity: d.trays,
-        packets: d.packets
+        packets: d.packets,
+        // Store customer info in the first dish entry
+        ...(validDishes.indexOf(d) === 0 && {
+          customerName: formData.customerName,
+          customerWhatsapp: formData.whatsapp
+        })
       }));
 
       const totalPackets = validDishes.reduce((sum, d) => sum + d.packets, 0);
@@ -123,7 +172,7 @@ export const AdminTrayBookingDialog = ({ open, onOpenChange, selectedDate, onSuc
         user_id: adminUser.id,
         booking_date: selectedDate,
         total_trays: selectedTrays.length,
-        tray_numbers: selectedTrays,
+        tray_numbers: selectedTrays.sort((a, b) => a - b),
         dishes: formattedDishes,
         num_packets: totalPackets,
         dehydration_cost: 0,
@@ -211,22 +260,38 @@ export const AdminTrayBookingDialog = ({ open, onOpenChange, selectedDate, onSuc
                 {trays.map((trayNumber) => {
                   const status = getTrayStatus(trayNumber);
                   const color = getTrayColor(status);
+                  const booking = getBookingForTray(trayNumber);
                   
                   return (
-                    <div
-                      key={trayNumber}
-                      onClick={() => handleTrayClick(trayNumber)}
-                      className={`aspect-square rounded flex items-center justify-center text-sm font-bold border-2 transition-all ${
-                        status === 'booked' ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:scale-110'
-                      }`}
-                      style={{
-                        backgroundColor: color,
-                        color: status === 'available' ? 'hsl(var(--foreground))' : 'white',
-                        borderColor: status === 'available' ? 'hsl(var(--border))' : 'transparent',
-                      }}
-                    >
-                      {trayNumber}
-                    </div>
+                    <TooltipProvider key={trayNumber}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div
+                            onClick={() => handleTrayClick(trayNumber)}
+                            className={`aspect-square rounded flex items-center justify-center text-sm font-bold border-2 transition-all ${
+                              status === 'booked' ? 'cursor-pointer hover:scale-110' : 'cursor-pointer hover:scale-110'
+                            }`}
+                            style={{
+                              backgroundColor: color,
+                              color: status === 'available' ? 'hsl(var(--foreground))' : 'white',
+                              borderColor: status === 'available' ? 'hsl(var(--border))' : 'transparent',
+                            }}
+                          >
+                            {trayNumber}
+                          </div>
+                        </TooltipTrigger>
+                        {booking && (
+                          <TooltipContent className="max-w-xs">
+                            <div className="space-y-1">
+                              <p className="font-semibold">{booking.profile?.full_name || 'Admin Booking'}</p>
+                              {booking.profile?.email && <p className="text-sm">{booking.profile.email}</p>}
+                              {booking.profile?.mobile_number && <p className="text-sm">{booking.profile.mobile_number}</p>}
+                              <p className="text-sm font-bold">Click to view details</p>
+                            </div>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </TooltipProvider>
                   );
                 })}
               </div>
@@ -319,6 +384,12 @@ export const AdminTrayBookingDialog = ({ open, onOpenChange, selectedDate, onSuc
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <AdminBookingDetailsDialog
+        booking={selectedBooking}
+        open={detailsDialogOpen}
+        onOpenChange={setDetailsDialogOpen}
+      />
     </Dialog>
   );
 };
