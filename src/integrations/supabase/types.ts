@@ -14,33 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      blocked_trays: {
-        Row: {
-          blocked_by: string | null
-          created_at: string
-          date: string
-          id: string
-          reason: string | null
-          tray_numbers: number[]
-        }
-        Insert: {
-          blocked_by?: string | null
-          created_at?: string
-          date: string
-          id?: string
-          reason?: string | null
-          tray_numbers: number[]
-        }
-        Update: {
-          blocked_by?: string | null
-          created_at?: string
-          date?: string
-          id?: string
-          reason?: string | null
-          tray_numbers?: number[]
-        }
-        Relationships: []
-      }
       bookings: {
         Row: {
           applied_credit_amount: number | null
