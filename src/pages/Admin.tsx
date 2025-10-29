@@ -11,6 +11,7 @@ import AdminBookings from '@/components/admin/AdminBookings';
 import AdminCalendar from '@/components/admin/AdminCalendar';
 import AdminDashboard from '@/components/admin/AdminDashboard';
 import AdminTrayManagement from '@/components/admin/AdminTrayManagement';
+import { AdminCustomers } from '@/components/admin/AdminCustomers';
 
 const Admin = () => {
   const { user, loading: authLoading } = useAuth();
@@ -62,7 +63,7 @@ const Admin = () => {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-8">
+          <TabsList className="grid w-full grid-cols-5 mb-8">
             <TabsTrigger value="dashboard">
               <LayoutDashboard className="mr-2 h-4 w-4" />
               Dashboard
@@ -78,6 +79,10 @@ const Admin = () => {
             <TabsTrigger value="tray-management">
               <Grid3x3 className="mr-2 h-4 w-4" />
               Tray Management
+            </TabsTrigger>
+            <TabsTrigger value="customers">
+              <Users className="mr-2 h-4 w-4" />
+              Customers
             </TabsTrigger>
           </TabsList>
 
@@ -95,6 +100,10 @@ const Admin = () => {
 
           <TabsContent value="tray-management">
             <AdminTrayManagement />
+          </TabsContent>
+
+          <TabsContent value="customers">
+            <AdminCustomers />
           </TabsContent>
         </Tabs>
       </main>

@@ -88,22 +88,26 @@ export const AdminBookingDetailsDialog = ({ booking, open, onOpenChange }: Booki
             {/* Dishes Information */}
             {booking.dishes && Array.isArray(booking.dishes) && booking.dishes.length > 0 && (
               <div>
-                <h3 className="text-lg font-semibold mb-3">Dishes</h3>
-                <div className="space-y-2">
-                  {booking.dishes.map((dish: any, idx: number) => (
-                    <div key={idx} className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                      <div>
-                        <p className="font-medium">{dish.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {dish.quantity} tray{dish.quantity > 1 ? 's' : ''}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-muted-foreground">Packets</p>
-                        <p className="font-medium">{dish.packets || 0}</p>
-                      </div>
-                    </div>
-                  ))}
+                <h3 className="text-lg font-semibold mb-3">Dishes Ordered</h3>
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-muted">
+                      <tr>
+                        <th className="text-left p-3 font-semibold">Dish Name</th>
+                        <th className="text-center p-3 font-semibold">Trays</th>
+                        <th className="text-center p-3 font-semibold">Packets</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {booking.dishes.map((dish: any, idx: number) => (
+                        <tr key={idx} className="border-t">
+                          <td className="p-3 font-medium">{dish.name}</td>
+                          <td className="p-3 text-center">{dish.quantity}</td>
+                          <td className="p-3 text-center">{dish.packets || 0}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}
