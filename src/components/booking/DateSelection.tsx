@@ -107,12 +107,20 @@ export const DateSelection = ({
   const handleDateSelect = async (date: Date | undefined) => {
     if (!date) return;
 
-    if (isDateBlocked(date)) {
+    const dateStr = formatDate(date);
+    
+    // Check if date is marked as holiday in calendar_config
+    const { data: calendarConfig } = await supabase
+      .from('calendar_config')
+      .select('is_holiday')
+      .eq('date', dateStr)
+      .maybeSingle();
+    
+    if (calendarConfig?.is_holiday || isDateBlocked(date)) {
       toast.error('Orders not accepted - holiday/off day');
       return;
     }
 
-    const dateStr = formatDate(date);
     const bookedTrays = await getBookedTraysForDate(date);
     const availableCount = TRAY_CAPACITY - bookedTrays.length;
 

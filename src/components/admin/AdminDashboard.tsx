@@ -227,8 +227,8 @@ const AdminDashboard = () => {
               <YAxis />
               <Tooltip />
               <Legend />
-              <Bar dataKey="trays" fill="hsl(var(--primary))" name="Trays" />
-              <Bar dataKey="packets" fill="hsl(var(--destructive))" name="Packets" />
+              <Bar dataKey="trays" fill="#eab308" name="Trays" />
+              <Bar dataKey="packets" fill="#ef4444" name="Packets" />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
