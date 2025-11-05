@@ -114,6 +114,27 @@ export const BookingDetailsDialog = ({
             </div>
           </div>
 
+          {/* Freeze-Dried Paneer */}
+          {booking.freeze_dried_orders && booking.freeze_dried_orders.length > 0 && (
+            <div>
+              <h3 className="font-semibold text-foreground mb-2">Freeze-Dried Paneer Order</h3>
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Packets:</span>
+                  <span className="text-foreground">{booking.freeze_dried_orders[0].total_packets}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Grams per Packet:</span>
+                  <span className="text-foreground">{booking.freeze_dried_orders[0].grams_per_packet}g</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Cost:</span>
+                  <span className="text-foreground">₹{booking.freeze_dried_orders[0].total_cost}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Delivery Method */}
           {booking.delivery_method && (
             <div>

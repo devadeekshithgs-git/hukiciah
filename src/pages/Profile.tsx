@@ -53,9 +53,16 @@ const Profile = () => {
   const fetchBookings = async () => {
     const { data, error } = await supabase
       .from('bookings')
-      .select('*')
+      .select(`
+        *,
+        freeze_dried_orders (
+          product_type,
+          total_packets,
+          grams_per_packet,
+          total_cost
+        )
+      `)
       .eq('user_id', user?.id)
-      .eq('payment_status', 'completed')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -285,6 +292,9 @@ const Profile = () => {
                       <p><strong>Total Cost:</strong> ₹{booking.total_cost}</p>
                       {booking.delivery_method && (
                         <p><strong>Delivery Method:</strong> {booking.delivery_method.replace('_', ' ')}</p>
+                      )}
+                      {booking.freeze_dried_orders && booking.freeze_dried_orders.length > 0 && (
+                        <p><strong>Freeze-Dried Paneer:</strong> {booking.freeze_dried_orders[0].total_packets} packets × {booking.freeze_dried_orders[0].grams_per_packet}g</p>
                       )}
                     </div>
 

@@ -207,7 +207,7 @@ export const PackingCosts = ({
       }
 
       // Create freeze-dried paneer order if enabled
-      if (freezeDriedPaneer.enabled && freezeDriedPaneer.gramsPerPacket >= 10) {
+      if (freezeDriedPaneer.enabled && freezeDriedPaneer.packets > 0 && freezeDriedPaneer.gramsPerPacket >= 10) {
         const { error: paneerError } = await supabase
           .from('freeze_dried_orders')
           .insert({
@@ -223,7 +223,12 @@ export const PackingCosts = ({
           if (import.meta.env.DEV) {
             console.error('Failed to create freeze-dried order:', paneerError);
           }
-          toast.error('Failed to add freeze-dried paneer');
+          // Don't show error to user, just log it
+        } else {
+          // Only show success if it actually worked
+          if (import.meta.env.DEV) {
+            console.log('Freeze-dried paneer order created successfully');
+          }
         }
       }
 

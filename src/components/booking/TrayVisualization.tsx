@@ -49,7 +49,8 @@ export const TrayVisualization = ({
             .from('bookings')
             .select('tray_numbers')
             .eq('booking_date', dateStr)
-            .eq('payment_status', 'completed');
+            .eq('payment_status', 'completed')
+            .eq('status', 'active');
 
           const booked = data?.flatMap(b => b.tray_numbers || []) || [];
           setRealtimeBookedTrays(booked);
