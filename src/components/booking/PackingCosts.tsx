@@ -158,10 +158,12 @@ export const PackingCosts = ({
         }
       }
 
-      const dishesObj = dishes.reduce((acc, dish) => {
-        acc[dish.name] = dish.quantity;
-        return acc;
-      }, {} as Record<string, number>);
+      // Store dishes as array of objects with name, quantity, and packets
+      const dishesArray = dishes.map(dish => ({
+        name: dish.name,
+        quantity: dish.quantity,
+        packets: dish.packets || 0
+      }));
 
       // Prepare vacuum packing data
       const vacuumPackingData = dishes
@@ -179,7 +181,7 @@ export const PackingCosts = ({
         .insert({
           user_id: user.id,
           booking_date: formatDate(selectedDate),
-          dishes: dishesObj,
+          dishes: dishesArray,
           total_trays: totalTrays,
           num_packets: numPackets,
           dehydration_cost: dehydrationCost,
