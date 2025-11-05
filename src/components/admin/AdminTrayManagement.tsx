@@ -21,7 +21,8 @@ const AdminTrayManagement = () => {
         .from('bookings')
         .select('*, tray_numbers')
         .eq('booking_date', dateStr)
-        .eq('payment_status', 'completed');
+        .eq('payment_status', 'completed')
+        .eq('status', 'active');
 
       if (error) throw error;
 

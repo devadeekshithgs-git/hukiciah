@@ -77,11 +77,13 @@ export const DateSelection = ({
   const getBookedTraysForDate = async (date: Date): Promise<number[]> => {
     const dateStr = formatDate(date);
     
-    // Get booked trays from bookings table (RLS policy filters to completed bookings)
+    // Get booked trays ONLY from completed and active bookings
     const { data: trayAvailability, error: trayError } = await supabase
       .from('bookings')
       .select('tray_numbers')
-      .eq('booking_date', dateStr);
+      .eq('booking_date', dateStr)
+      .eq('payment_status', 'completed')
+      .eq('status', 'active');
     
     if (trayError) {
       if (import.meta.env.DEV) {
@@ -131,12 +133,13 @@ export const DateSelection = ({
     const availableCount = TRAY_CAPACITY - bookedTrays.length;
 
     if (isSaturday(date)) {
-      // For Saturday validation, we need accurate booking count
-      // Query bookings table for this specific date (RLS policy filters to completed bookings)
+      // For Saturday validation, we need accurate booking count (only completed and active)
       const { data: saturdayBookings } = await supabase
         .from('bookings')
         .select('tray_numbers')
-        .eq('booking_date', dateStr);
+        .eq('booking_date', dateStr)
+        .eq('payment_status', 'completed')
+        .eq('status', 'active');
       
       const totalBookedForSaturday = saturdayBookings?.flatMap(b => b.tray_numbers).length || 0;
       
