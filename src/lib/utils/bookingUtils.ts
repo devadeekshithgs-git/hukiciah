@@ -30,3 +30,39 @@ export const findAvailableTrays = (
   
   return availableTrays;
 };
+
+// Dish format types
+export interface NormalizedDish {
+  name: string;
+  quantity: number;
+  packets: number;
+}
+
+/**
+ * Transforms old dish format (object) to new format (array)
+ * Old format: {"idli": 2, "dosa": 3}
+ * New format: [{name: "idli", quantity: 2, packets: 0}, {name: "dosa", quantity: 3, packets: 0}]
+ */
+export const normalizeDishes = (dishes: any): NormalizedDish[] => {
+  if (!dishes) return [];
+  
+  // Already in new array format
+  if (Array.isArray(dishes)) {
+    return dishes.map(dish => ({
+      name: dish.name || '',
+      quantity: dish.quantity || 0,
+      packets: dish.packets || 0,
+    }));
+  }
+  
+  // Old object format - convert to array
+  if (typeof dishes === 'object') {
+    return Object.entries(dishes).map(([name, quantity]) => ({
+      name,
+      quantity: typeof quantity === 'number' ? quantity : 0,
+      packets: 0,
+    }));
+  }
+  
+  return [];
+};

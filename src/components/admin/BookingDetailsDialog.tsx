@@ -2,6 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
+import { normalizeDishes } from '@/lib/utils/bookingUtils';
 
 interface BookingDetailsDialogProps {
   booking: any;
@@ -11,6 +12,9 @@ interface BookingDetailsDialogProps {
 
 export const AdminBookingDetailsDialog = ({ booking, open, onOpenChange }: BookingDetailsDialogProps) => {
   if (!booking) return null;
+
+  // Normalize dishes to handle both old object format and new array format
+  const normalizedDishes = normalizeDishes(booking.dishes);
 
   const totalPackets =
     (booking.num_packets || 0) +
@@ -92,7 +96,7 @@ export const AdminBookingDetailsDialog = ({ booking, open, onOpenChange }: Booki
             </div>
 
             {/* Dishes Information */}
-            {booking.dishes && Array.isArray(booking.dishes) && booking.dishes.length > 0 && (
+            {normalizedDishes.length > 0 && (
               <div>
                 <h3 className="text-lg font-semibold mb-3">Dishes Ordered</h3>
                 <div className="border rounded-lg overflow-hidden">
@@ -105,11 +109,11 @@ export const AdminBookingDetailsDialog = ({ booking, open, onOpenChange }: Booki
                       </tr>
                     </thead>
                     <tbody>
-                      {booking.dishes.map((dish: any, idx: number) => (
+                      {normalizedDishes.map((dish, idx) => (
                         <tr key={idx} className="border-t">
                           <td className="p-3 font-medium">{dish.name}</td>
                           <td className="p-3 text-center">{dish.quantity}</td>
-                          <td className="p-3 text-center">{dish.packets || 0}</td>
+                          <td className="p-3 text-center">{dish.packets}</td>
                         </tr>
                       ))}
                     </tbody>
