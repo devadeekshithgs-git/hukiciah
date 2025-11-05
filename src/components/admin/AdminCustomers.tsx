@@ -47,20 +47,20 @@ export const AdminCustomers = () => {
     try {
       const { data, error } = await supabase
         .from('bookings')
-        .select(`
-          *,
-          profile:profiles(full_name, email, mobile_number),
-          freeze_dried_orders(*)
-        `)
+        .select('*, freeze_dried_orders(*)')
         .eq('user_id', customerId)
         .order('booking_date', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching customer bookings:', error);
+        throw error;
+      }
       setCustomerBookings(data || []);
     } catch (error: any) {
+      console.error('Customer bookings error:', error);
       toast({
         title: 'Error',
-        description: 'Failed to load customer bookings',
+        description: error.message || 'Failed to load customer bookings',
         variant: 'destructive',
       });
     }
