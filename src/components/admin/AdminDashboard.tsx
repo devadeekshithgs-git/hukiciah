@@ -12,6 +12,7 @@ import { Calendar, Package, DollarSign, Layers, Download, Search, Copy, Trash2 }
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format, parseISO } from 'date-fns';
 import { getDateRange, exportBookingsCSV, type TimeFilter } from '@/lib/utils/adminUtils';
+import { normalizeDishes } from '@/lib/utils/bookingUtils';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AdminBookingDetailsDialog } from './BookingDetailsDialog';
@@ -366,7 +367,7 @@ const AdminDashboard = () => {
                       </TableCell>
                       <TableCell>
                         <div className="text-xs space-y-1 max-w-xs">
-                          {booking.dishes && Array.isArray(booking.dishes) && booking.dishes.map((dish: any, idx: number) => (
+                          {normalizeDishes(booking.dishes).map((dish, idx) => (
                             <div key={idx} className="text-muted-foreground">
                               {dish.name} ({dish.quantity})
                             </div>

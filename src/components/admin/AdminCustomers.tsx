@@ -15,6 +15,7 @@ import { Search, User, ShoppingBag, Package, Trash2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast as sonnerToast } from 'sonner';
+import { normalizeDishes } from '@/lib/utils/bookingUtils';
 
 export const AdminCustomers = () => {
   const [customers, setCustomers] = useState<any[]>([]);
@@ -246,7 +247,7 @@ export const AdminCustomers = () => {
                                    <div>
                                      <span className="text-muted-foreground">Dishes: </span>
                                      <span className="font-medium">
-                                       {Array.isArray(booking.dishes) ? booking.dishes.length : 0}
+                                       {normalizeDishes(booking.dishes).length}
                                      </span>
                                    </div>
                                  </div>
@@ -290,7 +291,7 @@ export const AdminCustomers = () => {
                               </TableHeader>
                               <TableBody>
                                 {customerBookings.map((booking) => {
-                                  const dishes = Array.isArray(booking.dishes) ? booking.dishes : [];
+                                  const dishes = normalizeDishes(booking.dishes);
                                   if (dishes.length === 0) {
                                     return (
                                       <TableRow key={booking.id}>
@@ -317,7 +318,7 @@ export const AdminCustomers = () => {
                                     );
                                   }
                                   
-                                  return dishes.map((dish: any, idx: number) => (
+                                  return dishes.map((dish, idx) => (
                                     <TableRow 
                                       key={`${booking.id}-${idx}`}
                                       className="cursor-pointer hover:bg-muted/50"
@@ -328,9 +329,9 @@ export const AdminCustomers = () => {
                                           {format(new Date(booking.booking_date), 'MMM dd, yyyy')}
                                         </TableCell>
                                       )}
-                                      <TableCell className="font-medium">{dish.name || 'Unknown'}</TableCell>
-                                      <TableCell>{dish.quantity || 0}</TableCell>
-                                      <TableCell>{dish.packets || 0}</TableCell>
+                                      <TableCell className="font-medium">{dish.name}</TableCell>
+                                      <TableCell>{dish.quantity}</TableCell>
+                                      <TableCell>{dish.packets}</TableCell>
                                       {idx === 0 && (
                                         <>
                                           <TableCell rowSpan={dishes.length} className="font-medium text-green-600">
