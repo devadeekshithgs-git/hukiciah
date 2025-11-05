@@ -35,6 +35,7 @@ const AdminBookings = () => {
       const { data: bookingsData, error: bookingsError } = await supabase
         .from('bookings')
         .select('*')
+        .eq('payment_status', 'completed')
         .order('created_at', { ascending: false });
 
       if (bookingsError) throw bookingsError;

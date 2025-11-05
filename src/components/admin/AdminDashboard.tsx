@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Package, DollarSign, Layers, Download, Search, Copy } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Calendar, Package, DollarSign, Layers, Download, Search, Copy, Trash2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format, parseISO } from 'date-fns';
 import { getDateRange, exportBookingsCSV, type TimeFilter } from '@/lib/utils/adminUtils';
@@ -23,14 +24,17 @@ const AdminDashboard = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
+  const [deletingBookingId, setDeletingBookingId] = useState<string | null>(null);
   const itemsPerPage = 10;
+  
+  const queryClient = useQueryClient();
 
   const dateRange = getDateRange(timeFilter);
 
   const { data: bookings, isLoading } = useQuery({
     queryKey: ['admin-dashboard-bookings', dateRange],
     queryFn: async () => {
-      let query = supabase.from('bookings').select('*');
+      let query = supabase.from('bookings').select('*').eq('payment_status', 'completed');
 
       if (dateRange) {
         query = query.gte('booking_date', dateRange.start).lte('booking_date', dateRange.end);
@@ -133,6 +137,31 @@ const AdminDashboard = () => {
   }, [filteredBookings, currentPage]);
 
   const totalPages = Math.ceil(filteredBookings.length / itemsPerPage);
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('bookings').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-dashboard-bookings'] });
+      toast.success('Booking deleted successfully');
+      setDeletingBookingId(null);
+    },
+    onError: (error: any) => {
+      toast.error('Failed to delete booking: ' + error.message);
+    },
+  });
+
+  const handleDelete = (id: string) => {
+    setDeletingBookingId(id);
+  };
+
+  const confirmDelete = () => {
+    if (deletingBookingId) {
+      deleteMutation.mutate(deletingBookingId);
+    }
+  };
 
   const copyOrderId = (id: string) => {
     navigator.clipboard.writeText(id.substring(0, 8));
@@ -294,6 +323,7 @@ const AdminDashboard = () => {
                   <TableHead>Payment</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -371,6 +401,18 @@ const AdminDashboard = () => {
                           {booking.status}
                         </Badge>
                       </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(booking.id);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   );
                 })}
@@ -401,6 +443,28 @@ const AdminDashboard = () => {
         open={detailsDialogOpen}
         onOpenChange={setDetailsDialogOpen}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deletingBookingId} onOpenChange={(open) => !open && setDeletingBookingId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Booking</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to permanently delete this booking? This action cannot be undone and will remove all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              disabled={deleteMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

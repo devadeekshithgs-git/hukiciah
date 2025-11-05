@@ -1,16 +1,20 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
 import { AdminBookingDetailsDialog } from './BookingDetailsDialog';
 import { useToast } from '@/hooks/use-toast';
-import { Search, User, ShoppingBag, Package } from 'lucide-react';
+import { Search, User, ShoppingBag, Package, Trash2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { toast as sonnerToast } from 'sonner';
 
 export const AdminCustomers = () => {
   const [customers, setCustomers] = useState<any[]>([]);
@@ -19,7 +23,9 @@ export const AdminCustomers = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [deletingBookingId, setDeletingBookingId] = useState<string | null>(null);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     fetchCustomers();
@@ -49,6 +55,7 @@ export const AdminCustomers = () => {
         .from('bookings')
         .select('*, freeze_dried_orders(*)')
         .eq('user_id', customerId)
+        .eq('payment_status', 'completed')
         .order('booking_date', { ascending: false });
 
       if (error) {
@@ -69,6 +76,34 @@ export const AdminCustomers = () => {
   const handleCustomerSelect = (customer: any) => {
     setSelectedCustomer(customer);
     fetchCustomerBookings(customer.id);
+  };
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('bookings').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      sonnerToast.success('Booking deleted successfully');
+      setDeletingBookingId(null);
+      if (selectedCustomer) {
+        fetchCustomerBookings(selectedCustomer.id);
+      }
+    },
+    onError: (error: any) => {
+      sonnerToast.error('Failed to delete booking: ' + error.message);
+    },
+  });
+
+  const handleDelete = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDeletingBookingId(id);
+  };
+
+  const confirmDelete = () => {
+    if (deletingBookingId) {
+      deleteMutation.mutate(deletingBookingId);
+    }
   };
 
   const handleBookingClick = (booking: any) => {
@@ -208,14 +243,23 @@ export const AdminCustomers = () => {
                                       <span className="text-muted-foreground">Amount Paid: </span>
                                       <span className="font-medium text-green-600">₹{booking.total_cost}</span>
                                     </div>
-                                    <div>
-                                      <span className="text-muted-foreground">Dishes: </span>
-                                      <span className="font-medium">
-                                        {Array.isArray(booking.dishes) ? booking.dishes.length : 0}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
+                                   <div>
+                                     <span className="text-muted-foreground">Dishes: </span>
+                                     <span className="font-medium">
+                                       {Array.isArray(booking.dishes) ? booking.dishes.length : 0}
+                                     </span>
+                                   </div>
+                                 </div>
+                                 <div className="mt-2 flex justify-end">
+                                   <Button
+                                     variant="ghost"
+                                     size="sm"
+                                     onClick={(e) => handleDelete(booking.id, e)}
+                                   >
+                                     <Trash2 className="h-4 w-4 text-destructive" />
+                                   </Button>
+                                 </div>
+                               </div>
                               ))
                             ) : (
                               <div className="p-8 text-center text-muted-foreground">
@@ -234,14 +278,15 @@ export const AdminCustomers = () => {
                           {customerBookings.length > 0 ? (
                             <Table>
                               <TableHeader>
-                                <TableRow>
-                                  <TableHead>Date</TableHead>
-                                  <TableHead>Dish Name</TableHead>
-                                  <TableHead>Trays</TableHead>
-                                  <TableHead>Packets</TableHead>
-                                  <TableHead>Amount</TableHead>
-                                  <TableHead>Status</TableHead>
-                                </TableRow>
+                                 <TableRow>
+                                   <TableHead>Date</TableHead>
+                                   <TableHead>Dish Name</TableHead>
+                                   <TableHead>Trays</TableHead>
+                                   <TableHead>Packets</TableHead>
+                                   <TableHead>Amount</TableHead>
+                                   <TableHead>Status</TableHead>
+                                   <TableHead>Actions</TableHead>
+                                 </TableRow>
                               </TableHeader>
                               <TableBody>
                                 {customerBookings.map((booking) => {
@@ -250,16 +295,25 @@ export const AdminCustomers = () => {
                                     return (
                                       <TableRow key={booking.id}>
                                         <TableCell>{format(new Date(booking.booking_date), 'MMM dd, yyyy')}</TableCell>
-                                        <TableCell className="text-muted-foreground italic">No dishes recorded</TableCell>
-                                        <TableCell>{booking.total_trays}</TableCell>
-                                        <TableCell>{booking.num_packets}</TableCell>
-                                        <TableCell className="font-medium">₹{booking.total_cost}</TableCell>
-                                        <TableCell>
-                                          <Badge variant={booking.payment_status === 'completed' ? 'default' : 'secondary'}>
-                                            {booking.payment_status}
-                                          </Badge>
-                                        </TableCell>
-                                      </TableRow>
+                                       <TableCell className="text-muted-foreground italic">No dishes recorded</TableCell>
+                                       <TableCell>{booking.total_trays}</TableCell>
+                                       <TableCell>{booking.num_packets}</TableCell>
+                                       <TableCell className="font-medium">₹{booking.total_cost}</TableCell>
+                                       <TableCell>
+                                         <Badge variant={booking.payment_status === 'completed' ? 'default' : 'secondary'}>
+                                           {booking.payment_status}
+                                         </Badge>
+                                       </TableCell>
+                                       <TableCell>
+                                         <Button
+                                           variant="ghost"
+                                           size="sm"
+                                           onClick={(e) => handleDelete(booking.id, e)}
+                                         >
+                                           <Trash2 className="h-4 w-4 text-destructive" />
+                                         </Button>
+                                       </TableCell>
+                                     </TableRow>
                                     );
                                   }
                                   
@@ -282,14 +336,23 @@ export const AdminCustomers = () => {
                                           <TableCell rowSpan={dishes.length} className="font-medium text-green-600">
                                             ₹{booking.total_cost}
                                           </TableCell>
-                                          <TableCell rowSpan={dishes.length}>
-                                            <Badge variant={booking.payment_status === 'completed' ? 'default' : 'secondary'}>
-                                              {booking.payment_status}
-                                            </Badge>
-                                          </TableCell>
-                                        </>
-                                      )}
-                                    </TableRow>
+                                           <TableCell rowSpan={dishes.length}>
+                                             <Badge variant={booking.payment_status === 'completed' ? 'default' : 'secondary'}>
+                                               {booking.payment_status}
+                                             </Badge>
+                                           </TableCell>
+                                           <TableCell rowSpan={dishes.length}>
+                                             <Button
+                                               variant="ghost"
+                                               size="sm"
+                                               onClick={(e) => handleDelete(booking.id, e)}
+                                             >
+                                               <Trash2 className="h-4 w-4 text-destructive" />
+                                             </Button>
+                                           </TableCell>
+                                         </>
+                                       )}
+                                     </TableRow>
                                   ));
                                 })}
                               </TableBody>
@@ -319,6 +382,28 @@ export const AdminCustomers = () => {
         open={detailsDialogOpen}
         onOpenChange={setDetailsDialogOpen}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deletingBookingId} onOpenChange={(open) => !open && setDeletingBookingId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Booking</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to permanently delete this booking? This action cannot be undone and will remove all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              disabled={deleteMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
