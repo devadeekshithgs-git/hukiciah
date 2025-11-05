@@ -8,7 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { AdminBookingDetailsDialog } from './BookingDetailsDialog';
 import { useToast } from '@/hooks/use-toast';
-import { Search, User } from 'lucide-react';
+import { Search, User, ShoppingBag, Package } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export const AdminCustomers = () => {
   const [customers, setCustomers] = useState<any[]>([]);
@@ -144,67 +146,163 @@ export const AdminCustomers = () => {
                     </div>
                   </div>
 
-                  <div className="border rounded-lg">
-                    <div className="p-4 border-b bg-muted">
-                      <h4 className="font-semibold">Order History ({customerBookings.length})</h4>
-                    </div>
-                    <ScrollArea className="h-[500px]">
-                      <div className="divide-y">
-                        {customerBookings.length > 0 ? (
-                          customerBookings.map((booking) => (
-                            <div
-                              key={booking.id}
-                              onClick={() => handleBookingClick(booking)}
-                              className="p-4 hover:bg-muted/50 cursor-pointer transition-colors"
-                            >
-                              <div className="flex justify-between items-start mb-2">
-                                <div>
-                                  <p className="font-semibold">
-                                    {format(new Date(booking.booking_date), 'MMMM dd, yyyy')}
-                                  </p>
-                                  <p className="text-sm text-muted-foreground">
-                                    Order ID: {booking.id.substring(0, 8)}
-                                  </p>
-                                </div>
-                                <Badge variant={booking.status === 'completed' ? 'default' : 'secondary'}>
-                                  {booking.status}
-                                </Badge>
-                              </div>
-                              
-                              <div className="grid grid-cols-2 gap-2 text-sm mb-3">
-                                <div>
-                                  <span className="text-muted-foreground">Trays: </span>
-                                  <span className="font-medium">{booking.total_trays}</span>
-                                </div>
-                                <div>
-                                  <span className="text-muted-foreground">Total: </span>
-                                  <span className="font-medium">₹{booking.total_cost}</span>
-                                </div>
-                              </div>
+                  <Tabs defaultValue="summary" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="summary" className="flex items-center gap-2">
+                        <ShoppingBag className="h-4 w-4" />
+                        Order Summary
+                      </TabsTrigger>
+                      <TabsTrigger value="details" className="flex items-center gap-2">
+                        <Package className="h-4 w-4" />
+                        Detailed View
+                      </TabsTrigger>
+                    </TabsList>
 
-                              {booking.dishes && booking.dishes.length > 0 && (
-                                <div className="space-y-1">
-                                  <p className="text-xs font-semibold text-muted-foreground uppercase">Dishes:</p>
-                                  {booking.dishes.map((dish: any, idx: number) => (
-                                    <div key={idx} className="text-sm flex justify-between">
-                                      <span>{dish.name}</span>
-                                      <span className="text-muted-foreground">
-                                        {dish.quantity} tray{dish.quantity > 1 ? 's' : ''}, {dish.packets} packets
+                    {/* Summary Tab */}
+                    <TabsContent value="summary" className="mt-4">
+                      <div className="border rounded-lg">
+                        <div className="p-4 border-b bg-muted">
+                          <div className="flex justify-between items-center">
+                            <h4 className="font-semibold">Order History ({customerBookings.length})</h4>
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">Total Spent: </span>
+                              <span className="font-bold text-lg">
+                                ₹{customerBookings.reduce((sum, b) => sum + Number(b.total_cost || 0), 0).toFixed(2)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <ScrollArea className="h-[500px]">
+                          <div className="divide-y">
+                            {customerBookings.length > 0 ? (
+                              customerBookings.map((booking) => (
+                                <div
+                                  key={booking.id}
+                                  onClick={() => handleBookingClick(booking)}
+                                  className="p-4 hover:bg-muted/50 cursor-pointer transition-colors"
+                                >
+                                  <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                      <p className="font-semibold">
+                                        {format(new Date(booking.booking_date), 'MMMM dd, yyyy')}
+                                      </p>
+                                      <p className="text-sm text-muted-foreground">
+                                        Order ID: {booking.id.substring(0, 8)}
+                                      </p>
+                                    </div>
+                                    <Badge variant={booking.payment_status === 'completed' ? 'default' : 'secondary'}>
+                                      {booking.payment_status}
+                                    </Badge>
+                                  </div>
+                                  
+                                  <div className="grid grid-cols-2 gap-2 text-sm">
+                                    <div>
+                                      <span className="text-muted-foreground">Trays: </span>
+                                      <span className="font-medium">{booking.total_trays}</span>
+                                    </div>
+                                    <div>
+                                      <span className="text-muted-foreground">Packets: </span>
+                                      <span className="font-medium">{booking.num_packets}</span>
+                                    </div>
+                                    <div>
+                                      <span className="text-muted-foreground">Amount Paid: </span>
+                                      <span className="font-medium text-green-600">₹{booking.total_cost}</span>
+                                    </div>
+                                    <div>
+                                      <span className="text-muted-foreground">Dishes: </span>
+                                      <span className="font-medium">
+                                        {Array.isArray(booking.dishes) ? booking.dishes.length : 0}
                                       </span>
                                     </div>
-                                  ))}
+                                  </div>
                                 </div>
-                              )}
-                            </div>
-                          ))
-                        ) : (
-                          <div className="p-8 text-center text-muted-foreground">
-                            No bookings found for this customer
+                              ))
+                            ) : (
+                              <div className="p-8 text-center text-muted-foreground">
+                                No bookings found for this customer
+                              </div>
+                            )}
                           </div>
-                        )}
+                        </ScrollArea>
                       </div>
-                    </ScrollArea>
-                  </div>
+                    </TabsContent>
+
+                    {/* Detailed View Tab */}
+                    <TabsContent value="details" className="mt-4">
+                      <div className="border rounded-lg">
+                        <ScrollArea className="h-[500px]">
+                          {customerBookings.length > 0 ? (
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Date</TableHead>
+                                  <TableHead>Dish Name</TableHead>
+                                  <TableHead>Trays</TableHead>
+                                  <TableHead>Packets</TableHead>
+                                  <TableHead>Amount</TableHead>
+                                  <TableHead>Status</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {customerBookings.map((booking) => {
+                                  const dishes = Array.isArray(booking.dishes) ? booking.dishes : [];
+                                  if (dishes.length === 0) {
+                                    return (
+                                      <TableRow key={booking.id}>
+                                        <TableCell>{format(new Date(booking.booking_date), 'MMM dd, yyyy')}</TableCell>
+                                        <TableCell className="text-muted-foreground italic">No dishes recorded</TableCell>
+                                        <TableCell>{booking.total_trays}</TableCell>
+                                        <TableCell>{booking.num_packets}</TableCell>
+                                        <TableCell className="font-medium">₹{booking.total_cost}</TableCell>
+                                        <TableCell>
+                                          <Badge variant={booking.payment_status === 'completed' ? 'default' : 'secondary'}>
+                                            {booking.payment_status}
+                                          </Badge>
+                                        </TableCell>
+                                      </TableRow>
+                                    );
+                                  }
+                                  
+                                  return dishes.map((dish: any, idx: number) => (
+                                    <TableRow 
+                                      key={`${booking.id}-${idx}`}
+                                      className="cursor-pointer hover:bg-muted/50"
+                                      onClick={() => handleBookingClick(booking)}
+                                    >
+                                      {idx === 0 && (
+                                        <TableCell rowSpan={dishes.length}>
+                                          {format(new Date(booking.booking_date), 'MMM dd, yyyy')}
+                                        </TableCell>
+                                      )}
+                                      <TableCell className="font-medium">{dish.name || 'Unknown'}</TableCell>
+                                      <TableCell>{dish.quantity || 0}</TableCell>
+                                      <TableCell>{dish.packets || 0}</TableCell>
+                                      {idx === 0 && (
+                                        <>
+                                          <TableCell rowSpan={dishes.length} className="font-medium text-green-600">
+                                            ₹{booking.total_cost}
+                                          </TableCell>
+                                          <TableCell rowSpan={dishes.length}>
+                                            <Badge variant={booking.payment_status === 'completed' ? 'default' : 'secondary'}>
+                                              {booking.payment_status}
+                                            </Badge>
+                                          </TableCell>
+                                        </>
+                                      )}
+                                    </TableRow>
+                                  ));
+                                })}
+                              </TableBody>
+                            </Table>
+                          ) : (
+                            <div className="p-8 text-center text-muted-foreground">
+                              No bookings found for this customer
+                            </div>
+                          )}
+                        </ScrollArea>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
                 </div>
               ) : (
                 <div className="h-[600px] flex items-center justify-center text-muted-foreground">
