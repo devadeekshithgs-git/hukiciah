@@ -153,27 +153,24 @@ export const AdminTrayBookingDialog = ({ open, onOpenChange, selectedDate, onSuc
         return;
       }
 
-      // Format dishes for database with customer info embedded
+      // Format dishes for database
       const formattedDishes = validDishes.map(d => ({
         name: d.name,
         quantity: d.trays,
         packets: d.packets,
-        // Store customer info in the first dish entry
-        ...(validDishes.indexOf(d) === 0 && {
-          customerName: formData.customerName,
-          customerWhatsapp: formData.whatsapp
-        })
       }));
 
       const totalPackets = validDishes.reduce((sum, d) => sum + d.packets, 0);
 
-      // Insert booking with admin_created flag
+      // Insert booking with admin_created flag and customer info in dedicated columns
       const { error } = await supabase.from('bookings').insert({
         user_id: adminUser.id,
         booking_date: selectedDate,
         total_trays: selectedTrays.length,
         tray_numbers: selectedTrays.sort((a, b) => a - b),
         dishes: formattedDishes,
+        customer_name: formData.customerName,
+        customer_whatsapp: formData.whatsapp,
         num_packets: totalPackets,
         dehydration_cost: 0,
         packing_cost: 0,

@@ -109,6 +109,12 @@ export const DateSelection = ({
 
     const dateStr = formatDate(date);
     
+    // Check if date is blocked by Sunday or hardcoded holidays
+    if (isDateBlocked(date)) {
+      toast.error('Orders not accepted - holiday/off day');
+      return;
+    }
+    
     // Check if date is marked as holiday in calendar_config
     const { data: calendarConfig } = await supabase
       .from('calendar_config')
@@ -116,7 +122,7 @@ export const DateSelection = ({
       .eq('date', dateStr)
       .maybeSingle();
     
-    if (calendarConfig?.is_holiday || isDateBlocked(date)) {
+    if (calendarConfig?.is_holiday) {
       toast.error('Orders not accepted - holiday/off day');
       return;
     }

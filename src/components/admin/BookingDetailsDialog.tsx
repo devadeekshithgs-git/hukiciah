@@ -17,12 +17,6 @@ export const AdminBookingDetailsDialog = ({ booking, open, onOpenChange }: Booki
     (Array.isArray(booking.vacuum_packing) ? booking.vacuum_packing.length : 0) +
     (booking.freeze_dried_orders?.[0]?.total_packets || 0);
 
-  // Extract customer info from admin bookings (stored in first dish)
-  const adminCustomerInfo = booking.admin_created && booking.dishes?.[0] ? {
-    name: booking.dishes[0].customerName,
-    whatsapp: booking.dishes[0].customerWhatsapp
-  } : null;
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[80vh]">
@@ -38,7 +32,7 @@ export const AdminBookingDetailsDialog = ({ booking, open, onOpenChange }: Booki
                 <div>
                   <p className="text-muted-foreground">Name</p>
                   <p className="font-medium">
-                    {adminCustomerInfo?.name || booking.profile?.full_name || '-'}
+                    {booking.customer_name || booking.profile?.full_name || '-'}
                   </p>
                 </div>
                 <div>
@@ -46,15 +40,15 @@ export const AdminBookingDetailsDialog = ({ booking, open, onOpenChange }: Booki
                   <p className="font-mono text-xs">{booking.id.substring(0, 8)}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">{adminCustomerInfo ? 'WhatsApp' : 'Email'}</p>
+                  <p className="text-muted-foreground">{booking.admin_created ? 'WhatsApp' : 'Email'}</p>
                   <p className="font-medium">
-                    {adminCustomerInfo?.whatsapp || booking.profile?.email || '-'}
+                    {booking.customer_whatsapp || booking.profile?.email || '-'}
                   </p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Phone</p>
                   <p className="font-medium">
-                    {adminCustomerInfo?.whatsapp || booking.profile?.mobile_number || '-'}
+                    {booking.customer_whatsapp || booking.profile?.mobile_number || '-'}
                   </p>
                 </div>
               </div>

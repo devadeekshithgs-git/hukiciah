@@ -20,6 +20,8 @@ export type Database = {
           applied_credit_amount: number | null
           booking_date: string
           created_at: string
+          customer_name: string | null
+          customer_whatsapp: string | null
           dehydration_cost: number
           delivery_method: string | null
           dishes: Json
@@ -43,6 +45,8 @@ export type Database = {
           applied_credit_amount?: number | null
           booking_date: string
           created_at?: string
+          customer_name?: string | null
+          customer_whatsapp?: string | null
           dehydration_cost: number
           delivery_method?: string | null
           dishes: Json
@@ -66,6 +70,8 @@ export type Database = {
           applied_credit_amount?: number | null
           booking_date?: string
           created_at?: string
+          customer_name?: string | null
+          customer_whatsapp?: string | null
           dehydration_cost?: number
           delivery_method?: string | null
           dishes?: Json
