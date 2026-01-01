@@ -267,6 +267,7 @@ export const PackingCosts = ({
         }, 3000);
         
         await sendToGoogleSheets(booking, 0);
+        await sendBookingConfirmationEmail(booking, 0);
         return;
       }
 
@@ -298,6 +299,7 @@ export const PackingCosts = ({
         }, 3000);
         
         await sendToGoogleSheets(booking, 0);
+        await sendBookingConfirmationEmail(booking, 0);
         return;
       }
 
@@ -348,6 +350,7 @@ export const PackingCosts = ({
             }, 3000);
             
             await sendToGoogleSheets(booking, orderData.amount);
+            await sendBookingConfirmationEmail(booking, orderData.amount);
           },
           prefill: {
             email: user.email,
@@ -383,6 +386,54 @@ export const PackingCosts = ({
         console.error('Payment error:', error);
       }
       toast.error('Failed to initiate payment');
+    }
+  };
+
+  // Send instant email notification to admin
+  const sendBookingConfirmationEmail = async (booking: any, amountPaid: number) => {
+    try {
+      const vacuumPackingItems = dishes
+        .filter(dish => dish.vacuumPacking?.enabled)
+        .map(dish => ({
+          itemName: dish.name,
+          packets: dish.vacuumPacking!.packets,
+        }));
+
+      const emailData = {
+        bookingId: booking.id,
+        customerName: profile?.full_name || 'Unknown',
+        customerEmail: profile?.email || user?.email || '',
+        customerPhone: profile?.mobile_number || '',
+        bookingDate: formatDate(selectedDate!),
+        dishes: dishes.map(d => ({ name: d.name, grams: d.quantity * 100 })),
+        totalTrays: totalTrays,
+        trayNumbers: allocatedTrays,
+        totalCost: amountPaid > 0 ? amountPaid : totalCost,
+        paymentMethod: paymentMethod,
+        deliveryMethod: booking.delivery_method || deliveryMethod || 'not_set',
+        vacuumPacking: vacuumPackingItems.length > 0 ? vacuumPackingItems : undefined,
+        freezeDriedPaneer: freezeDriedPaneer.enabled && freezeDriedPaneer.packets > 0 
+          ? {
+              packets: freezeDriedPaneer.packets,
+              gramsPerPacket: freezeDriedPaneer.gramsPerPacket,
+              cost: freezeDriedCost,
+            }
+          : undefined,
+      };
+
+      const { error } = await supabase.functions.invoke('send-booking-confirmation', {
+        body: emailData,
+      });
+
+      if (error) {
+        console.error('Failed to send booking confirmation email:', error);
+        // Don't show error to user - email is secondary
+      } else {
+        console.log('Booking confirmation email sent successfully');
+      }
+    } catch (err) {
+      console.error('Error sending booking confirmation email:', err);
+      // Silently fail - don't block user flow
     }
   };
 
