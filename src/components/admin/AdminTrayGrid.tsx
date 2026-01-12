@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { AdminTrayBookingDialog } from './AdminTrayBookingDialog';
 import { AdminBookingDetailsDialog } from './BookingDetailsDialog';
+import { ADMIN_TRAY_CAPACITY } from '@/lib/constants';
 
 interface AdminTrayGridProps {
   bookings: any[];
@@ -23,7 +24,7 @@ const AdminTrayGrid = ({ bookings, blockedTrays, isHoliday, selectedDate, onUpda
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
-  const trays = Array.from({ length: 50 }, (_, i) => i + 1);
+  const trays = Array.from({ length: ADMIN_TRAY_CAPACITY }, (_, i) => i + 1);
 
   const getBookingForTray = (trayNumber: number) => {
     return bookings.find(

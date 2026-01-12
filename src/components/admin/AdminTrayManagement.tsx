@@ -6,6 +6,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import AdminTrayGrid from './AdminTrayGrid';
 import { Loader2 } from 'lucide-react';
+import { ADMIN_TRAY_CAPACITY } from '@/lib/constants';
 
 const AdminTrayManagement = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -137,7 +138,7 @@ const AdminTrayManagement = () => {
               Tray Layout - {selectedDate ? format(selectedDate, 'EEEE, MMMM dd, yyyy') : 'Select a date'}
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              {bookedTrays} trays booked out of 50
+              {bookedTrays} trays booked out of {ADMIN_TRAY_CAPACITY}
             </p>
           </CardHeader>
           <CardContent>

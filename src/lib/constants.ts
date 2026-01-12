@@ -17,7 +17,8 @@ export const HOLIDAYS_2025 = [
   '2025-12-25', // Christmas
 ];
 
-export const TRAY_CAPACITY = 24;
+export const TRAY_CAPACITY = 24; // Customer booking capacity per day
+export const ADMIN_TRAY_CAPACITY = 50; // Physical tray capacity (admin view)
 export const TRAY_PRICE_LESS_THAN_6 = 350;
 export const TRAY_PRICE_6_OR_MORE = 300;
 export const PACKING_COST_PER_PACKET = 10;

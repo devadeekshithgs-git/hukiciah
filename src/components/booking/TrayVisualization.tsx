@@ -29,11 +29,46 @@ export const TrayVisualization = ({
   const [selectedTrays, setSelectedTrays] = useState<number[]>(allocatedTrays);
   const [realtimeBookedTrays, setRealtimeBookedTrays] = useState<number[]>(bookedTrays);
 
+  // Fetch unavailable trays (booked + blocked)
+  const fetchUnavailableTrays = async () => {
+    if (!selectedDate) return;
+    
+    const dateStr = selectedDate.toISOString().split('T')[0];
+    
+    // Fetch booked trays
+    const { data: bookingsData } = await supabase
+      .from('bookings')
+      .select('tray_numbers')
+      .eq('booking_date', dateStr)
+      .eq('payment_status', 'completed')
+      .eq('status', 'active');
+
+    // Fetch blocked trays from calendar_config
+    const { data: configData } = await supabase
+      .from('calendar_config')
+      .select('blocked_trays')
+      .eq('date', dateStr)
+      .maybeSingle();
+
+    const bookedFromBookings = bookingsData?.flatMap(b => b.tray_numbers || []) || [];
+    const blockedTrays = configData?.blocked_trays || [];
+    const allUnavailable = [...new Set([...bookedFromBookings, ...blockedTrays])];
+
+    return { allUnavailable, bookedFromBookings };
+  };
+
   // Real-time subscription for instant tray availability updates
   useEffect(() => {
     if (!selectedDate) return;
 
-    const channel = supabase
+    // Initial fetch
+    fetchUnavailableTrays().then(result => {
+      if (result) {
+        setRealtimeBookedTrays(result.allUnavailable);
+      }
+    });
+
+    const bookingsChannel = supabase
       .channel('customer-tray-updates')
       .on(
         'postgres_changes',
@@ -43,30 +78,42 @@ export const TrayVisualization = ({
           table: 'bookings',
         },
         async () => {
-          // Refetch booked trays for current date
-          const dateStr = selectedDate.toISOString().split('T')[0];
-          const { data } = await supabase
-            .from('bookings')
-            .select('tray_numbers')
-            .eq('booking_date', dateStr)
-            .eq('payment_status', 'completed')
-            .eq('status', 'active');
+          const result = await fetchUnavailableTrays();
+          if (result) {
+            setRealtimeBookedTrays(result.allUnavailable);
+            
+            // Check if any selected trays are now booked
+            const conflictingTrays = selectedTrays.filter(t => result.bookedFromBookings.includes(t));
+            if (conflictingTrays.length > 0 && manualMode) {
+              toast.error(`Trays ${conflictingTrays.join(', ')} just got booked. Please select different trays.`);
+              setSelectedTrays(selectedTrays.filter(t => !result.bookedFromBookings.includes(t)));
+            }
+          }
+        }
+      )
+      .subscribe();
 
-          const booked = data?.flatMap(b => b.tray_numbers || []) || [];
-          setRealtimeBookedTrays(booked);
-          
-          // Check if any selected trays are now booked
-          const conflictingTrays = selectedTrays.filter(t => booked.includes(t));
-          if (conflictingTrays.length > 0 && manualMode) {
-            toast.error(`Trays ${conflictingTrays.join(', ')} just got booked. Please select different trays.`);
-            setSelectedTrays(selectedTrays.filter(t => !booked.includes(t)));
+    const configChannel = supabase
+      .channel('customer-config-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'calendar_config',
+        },
+        async () => {
+          const result = await fetchUnavailableTrays();
+          if (result) {
+            setRealtimeBookedTrays(result.allUnavailable);
           }
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(bookingsChannel);
+      supabase.removeChannel(configChannel);
     };
   }, [selectedDate, selectedTrays, manualMode]);
 
