@@ -29,28 +29,29 @@ export const TrayVisualization = ({
   const [selectedTrays, setSelectedTrays] = useState<number[]>(allocatedTrays);
   const [realtimeBookedTrays, setRealtimeBookedTrays] = useState<number[]>(bookedTrays);
 
-  // Fetch unavailable trays (booked + blocked)
+  // Fetch unavailable trays using secure RPC function (no PII exposed)
   const fetchUnavailableTrays = async () => {
     if (!selectedDate) return;
     
     const dateStr = selectedDate.toISOString().split('T')[0];
     
-    // Fetch booked trays
-    const { data: bookingsData } = await supabase
-      .from('bookings')
-      .select('tray_numbers')
-      .eq('booking_date', dateStr)
-      .eq('payment_status', 'completed')
-      .eq('status', 'active');
+    // Use secure RPC function that only returns tray numbers (no customer data)
+    // Type assertion needed as database types may not be regenerated yet
+    const { data: bookedTrayNumbers, error: rpcError } = await supabase
+      .rpc('get_booked_trays_for_date' as any, { target_date: dateStr });
 
-    // Fetch blocked trays from calendar_config
+    if (rpcError) {
+      console.error('Error fetching booked trays:', rpcError);
+    }
+
+    // Fetch blocked trays from calendar_config (public read allowed)
     const { data: configData } = await supabase
       .from('calendar_config')
       .select('blocked_trays')
       .eq('date', dateStr)
       .maybeSingle();
 
-    const bookedFromBookings = bookingsData?.flatMap(b => b.tray_numbers || []) || [];
+    const bookedFromBookings: number[] = (bookedTrayNumbers as number[]) || [];
     const blockedTrays = configData?.blocked_trays || [];
     const allUnavailable = [...new Set([...bookedFromBookings, ...blockedTrays])];
 
