@@ -9,6 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Plus, X } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AdminBookingDetailsDialog } from './BookingDetailsDialog';
+import { ADMIN_TRAY_CAPACITY } from '@/lib/constants';
 
 interface AdminTrayBookingDialogProps {
   open: boolean;
@@ -36,7 +37,7 @@ export const AdminTrayBookingDialog = ({ open, onOpenChange, selectedDate, onSuc
   const [isSaving, setIsSaving] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
-  const trays = Array.from({ length: 50 }, (_, i) => i + 1);
+  const trays = Array.from({ length: ADMIN_TRAY_CAPACITY }, (_, i) => i + 1);
 
   // Fetch booked trays for the selected date
   useEffect(() => {
