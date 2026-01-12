@@ -1,6 +1,5 @@
-import { useState } from 'react';
-import { calculateTrayStatus, getTrayStatusColor } from '@/lib/utils/adminUtils';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useState, useMemo } from 'react';
+import { calculateTrayStatus, getTrayStatusColor, getCustomerColor } from '@/lib/utils/adminUtils';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -25,6 +24,17 @@ const AdminTrayGrid = ({ bookings, blockedTrays, isHoliday, selectedDate, onUpda
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const trays = Array.from({ length: ADMIN_TRAY_CAPACITY }, (_, i) => i + 1);
+
+  // Build a map of unique customers to assign consistent colors
+  const customerColorMap = useMemo(() => {
+    const completedBookings = bookings.filter(b => b.payment_status === 'completed');
+    const uniqueUserIds = [...new Set(completedBookings.map(b => b.user_id))];
+    const map = new Map<string, number>();
+    uniqueUserIds.forEach((userId, index) => {
+      map.set(userId, index);
+    });
+    return map;
+  }, [bookings]);
 
   const getBookingForTray = (trayNumber: number) => {
     return bookings.find(
@@ -108,6 +118,21 @@ const AdminTrayGrid = ({ bookings, blockedTrays, isHoliday, selectedDate, onUpda
     }
   };
 
+  const getTrayBackgroundColor = (trayNumber: number, status: string) => {
+    const booking = getBookingForTray(trayNumber);
+    
+    if (booking && status === 'booked') {
+      const customerIndex = customerColorMap.get(booking.user_id) ?? 0;
+      return getCustomerColor(booking.user_id, customerIndex);
+    }
+    
+    if (status === 'admin-booked') {
+      return getTrayStatusColor('admin-booked');
+    }
+    
+    return getTrayStatusColor(status);
+  };
+
   return (
     <div className="space-y-6">
       {/* Edit Mode Controls */}
@@ -117,7 +142,7 @@ const AdminTrayGrid = ({ bookings, blockedTrays, isHoliday, selectedDate, onUpda
             <Button variant="outline" onClick={() => setBookingDialogOpen(true)}>
               Create Admin Booking
             </Button>
-            <Button onClick={() => {
+            <Button variant="destructive" onClick={() => {
               setEditMode(true);
               setSelectedTrays([...blockedTrays]);
             }}>
@@ -151,45 +176,54 @@ const AdminTrayGrid = ({ bookings, blockedTrays, isHoliday, selectedDate, onUpda
         {trays.map((trayNumber) => {
           const status = getTrayDisplayStatus(trayNumber);
           const booking = getBookingForTray(trayNumber);
-          const color = getTrayStatusColor(status);
+          const bgColor = getTrayBackgroundColor(trayNumber, status);
+          const isBlocked = status === 'blocked';
+          const isAvailable = status === 'available';
 
           return (
-            <TooltipProvider key={trayNumber}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div
-                    onClick={() => handleTrayClick(trayNumber)}
-                    className={`aspect-square rounded-lg flex items-center justify-center text-lg font-bold border-2 transition-all ${
-                      booking ? 'cursor-pointer hover:scale-105' : ''
-                    } ${
-                      editMode && status === 'available' ? 'cursor-pointer hover:scale-105' : ''
-                    } ${
-                      editMode && (status === 'booked' || status === 'admin-booked' || status === 'holiday') ? 'cursor-not-allowed opacity-60' : ''
-                    }`}
-                    style={{
-                      backgroundColor: color,
-                      color: status === 'available' ? 'hsl(var(--foreground))' : 'white',
-                      borderColor: status === 'available' ? 'hsl(var(--border))' : 'transparent',
-                    }}
-                  >
-                    {trayNumber}
+            <div
+              key={trayNumber}
+              onClick={() => handleTrayClick(trayNumber)}
+              className={`min-h-[100px] rounded-lg flex flex-col items-center justify-center p-2 border-2 transition-all text-center relative overflow-hidden ${
+                booking ? 'cursor-pointer hover:scale-[1.02] hover:shadow-lg' : ''
+              } ${
+                editMode && isAvailable ? 'cursor-pointer hover:scale-[1.02]' : ''
+              } ${
+                editMode && (status === 'booked' || status === 'admin-booked' || status === 'holiday') ? 'cursor-not-allowed opacity-60' : ''
+              } ${
+                isBlocked && !editMode ? 'bg-stripes' : ''
+              }`}
+              style={{
+                backgroundColor: bgColor,
+                color: isAvailable ? 'hsl(var(--foreground))' : 'white',
+                borderColor: isAvailable ? 'hsl(var(--border))' : 'transparent',
+              }}
+            >
+              {/* Tray Number */}
+              <span className={`font-bold ${booking ? 'text-lg' : 'text-2xl'}`}>
+                {trayNumber}
+              </span>
+              
+              {/* Customer Details (only for booked trays) */}
+              {booking && (
+                <div className="mt-1 text-[10px] leading-tight space-y-0.5">
+                  <div className="font-semibold truncate max-w-full">
+                    {booking.profile?.full_name || 'Unknown'}
                   </div>
-                </TooltipTrigger>
-                {booking && (
-                  <TooltipContent className="max-w-xs">
-                    <div className="space-y-1">
-                      <p className="font-semibold">{booking.profile?.full_name}</p>
-                      <p className="text-sm">{booking.profile?.email}</p>
-                      <p className="text-sm">{booking.profile?.mobile_number}</p>
-                      <p className="text-sm font-medium">
-                        Payment: {booking.payment_method === 'online' ? 'Online' : 'Online'}
-                      </p>
-                      <p className="text-sm font-bold">₹{Number(booking.total_cost).toFixed(2)}</p>
-                    </div>
-                  </TooltipContent>
-                )}
-              </Tooltip>
-            </TooltipProvider>
+                  <div className="opacity-90 truncate max-w-full">
+                    {booking.profile?.mobile_number || ''}
+                  </div>
+                  <div className="font-medium">
+                    ₹{Number(booking.total_cost).toFixed(0)}
+                  </div>
+                </div>
+              )}
+              
+              {/* Blocked indicator */}
+              {isBlocked && !editMode && (
+                <span className="text-xs mt-1 text-muted-foreground font-medium">Blocked</span>
+              )}
+            </div>
           );
         })}
       </div>
@@ -205,22 +239,29 @@ const AdminTrayGrid = ({ bookings, blockedTrays, isHoliday, selectedDate, onUpda
         </div>
         <div className="flex items-center gap-2">
           <div
-            className="w-6 h-6 rounded border-2"
-            style={{ backgroundColor: getTrayStatusColor('booked') }}
+            className="w-6 h-6 rounded"
+            style={{ backgroundColor: 'hsl(221 83% 53%)' }}
           />
           <span className="text-sm">Customer Booking</span>
         </div>
         <div className="flex items-center gap-2">
           <div
-            className="w-6 h-6 rounded border-2"
+            className="w-6 h-6 rounded"
             style={{ backgroundColor: getTrayStatusColor('admin-booked') }}
           />
           <span className="text-sm">Admin Booking</span>
         </div>
+        <div className="flex items-center gap-2">
+          <div
+            className="w-6 h-6 rounded border-2 bg-stripes"
+            style={{ backgroundColor: 'hsl(0 0% 95%)', borderColor: 'hsl(var(--border))' }}
+          />
+          <span className="text-sm">Blocked</span>
+        </div>
         {editMode && (
           <div className="flex items-center gap-2">
             <div
-              className="w-6 h-6 rounded border-2"
+              className="w-6 h-6 rounded"
               style={{ backgroundColor: getTrayStatusColor('selected') }}
             />
             <span className="text-sm">Selected for Blocking</span>
@@ -228,7 +269,7 @@ const AdminTrayGrid = ({ bookings, blockedTrays, isHoliday, selectedDate, onUpda
         )}
         <div className="flex items-center gap-2">
           <div
-            className="w-6 h-6 rounded border-2"
+            className="w-6 h-6 rounded"
             style={{ backgroundColor: getTrayStatusColor('holiday') }}
           />
           <span className="text-sm">Holiday</span>
