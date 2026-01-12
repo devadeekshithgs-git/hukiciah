@@ -102,7 +102,11 @@ const AdminTrayManagement = () => {
   }, []);
 
   const isLoading = bookingsLoading || configLoading;
-  const bookedTrays = bookingsData?.filter(b => b.payment_status === 'completed').length || 0;
+  
+  // Count actual booked tray numbers (not bookings count)
+  const bookedTrayCount = bookingsData
+    ?.filter(b => b.payment_status === 'completed')
+    .reduce((total, booking) => total + (booking.tray_numbers?.length || 0), 0) || 0;
 
   const handleUpdate = () => {
     setRealtimeKey(prev => prev + 1);
@@ -138,7 +142,7 @@ const AdminTrayManagement = () => {
               Tray Layout - {selectedDate ? format(selectedDate, 'EEEE, MMMM dd, yyyy') : 'Select a date'}
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              {bookedTrays} trays booked out of {ADMIN_TRAY_CAPACITY}
+              {bookedTrayCount} trays booked out of {ADMIN_TRAY_CAPACITY}
             </p>
           </CardHeader>
           <CardContent>

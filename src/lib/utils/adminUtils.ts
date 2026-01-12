@@ -126,11 +126,11 @@ export function getTrayStatusColor(status: string): string {
     case 'available':
       return 'transparent'; // No color for available
     case 'booked':
-      return 'hsl(0 0% 62%)'; // Grey for customer bookings
+      return 'hsl(0 0% 62%)'; // Grey for customer bookings (fallback)
     case 'admin-booked':
       return 'hsl(45 93% 47%)'; // Yellow for admin bookings
     case 'blocked':
-      return 'hsl(0 0% 62%)'; // Grey for blocked
+      return 'hsl(0 0% 85%)'; // Light grey with stripes for blocked (different from booked)
     case 'selected':
       return 'hsl(142 71% 45%)'; // Green for selected
     case 'holiday':
@@ -138,4 +138,22 @@ export function getTrayStatusColor(status: string): string {
     default:
       return 'transparent';
   }
+}
+
+// Color palette for different customers - each customer gets a unique color
+const CUSTOMER_COLORS = [
+  'hsl(221 83% 53%)', // Blue
+  'hsl(142 71% 45%)', // Green  
+  'hsl(280 67% 55%)', // Purple
+  'hsl(24 95% 53%)', // Orange
+  'hsl(340 82% 52%)', // Pink
+  'hsl(174 72% 40%)', // Teal
+  'hsl(45 93% 47%)', // Amber
+  'hsl(0 72% 51%)', // Red
+  'hsl(262 83% 58%)', // Violet
+  'hsl(199 89% 48%)', // Cyan
+];
+
+export function getCustomerColor(userId: string, customerIndex: number): string {
+  return CUSTOMER_COLORS[customerIndex % CUSTOMER_COLORS.length];
 }
