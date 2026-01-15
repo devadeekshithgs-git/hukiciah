@@ -297,6 +297,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_booked_trays_for_date: {
+        Args: { target_date: string }
+        Returns: number[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
