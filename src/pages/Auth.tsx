@@ -247,13 +247,25 @@ const Auth = () => {
             />
           </div>
 
-          <Button
-            type="submit"
-            className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-            disabled={loading}
-          >
-            {loading ? 'Sending...' : 'Send Login Link'}
-          </Button>
+          {!isAdminAutofill && (
+            <Button
+              type="submit"
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+              disabled={loading}
+            >
+              {loading ? 'Sending...' : 'Send Login Link'}
+            </Button>
+          )}
+
+          {isAdminAutofill && (
+            <Button
+              type="submit"
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+              disabled={loading}
+            >
+              {loading ? 'Signing in...' : 'Continue as Admin'}
+            </Button>
+          )}
         </form>
 
         <div className="mt-6 flex flex-col gap-2">
