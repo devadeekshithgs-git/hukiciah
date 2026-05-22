@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -8,13 +8,17 @@ import { Logo } from '@/components/Logo';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { useAuth } from '@/components/AuthProvider';
-import { useEffect } from 'react';
-import { Mail } from 'lucide-react';
 
-const authSchema = z.object({
-  fullName: z.string().min(2, 'Full name must be at least 2 characters').max(100, 'Name too long').trim().optional(),
-  email: z.string().email('Invalid email address').max(255, 'Email too long').trim(),
-  mobileNumber: z.string().regex(/^[6-9]\d{9}$/, 'Invalid Indian mobile number').length(10, 'Mobile number must be 10 digits').optional(),
+const signupSchema = z.object({
+  fullName: z.string().trim().min(2, 'Full name must be at least 2 characters').max(100, 'Name too long'),
+  email: z.string().trim().email('Invalid email address').max(255, 'Email too long'),
+  mobileNumber: z.string().regex(/^[6-9]\d{9}$/, 'Invalid Indian mobile number'),
+  password: z.string().min(8, 'Password must be at least 8 characters').max(72, 'Password too long'),
+});
+
+const loginSchema = z.object({
+  email: z.string().trim().email('Invalid email address').max(255, 'Email too long'),
+  password: z.string().min(1, 'Password is required').max(72, 'Password too long'),
 });
 
 const ADMIN_AUTOFILL = {
@@ -28,14 +32,13 @@ const Auth = () => {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [emailSent, setEmailSent] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
 
   const isAdminAutofill = isSignup && fullName.trim().toLowerCase() === ADMIN_AUTOFILL.name;
 
-  // Autofill email & mobile when the admin name is typed
   useEffect(() => {
     if (isAdminAutofill) {
       setEmail(ADMIN_AUTOFILL.email);
@@ -74,21 +77,19 @@ const Auth = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    try {
-      authSchema.parse({ fullName, email, mobileNumber });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast.error(error.errors[0].message);
-        return;
-      }
+
+    const parsed = signupSchema.safeParse({ fullName, email, mobileNumber, password });
+    if (!parsed.success) {
+      toast.error(parsed.error.errors[0].message);
+      return;
     }
 
     setLoading(true);
     const redirectUrl = `${window.location.origin}/`;
 
-    const { error } = await supabase.auth.signInWithOtp({
+    const { error } = await supabase.auth.signUp({
       email,
+      password,
       options: {
         emailRedirectTo: redirectUrl,
         data: {
@@ -101,33 +102,31 @@ const Auth = () => {
     setLoading(false);
 
     if (error) {
-      toast.error(error.message);
+      if (error.message.toLowerCase().includes('already')) {
+        toast.error('Account already exists. Please sign in instead.');
+      } else {
+        toast.error(error.message);
+      }
       return;
     }
 
-    setEmailSent(true);
-    toast.success('Check your email for the login link!');
+    toast.success('Account created! Signing you in...');
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    try {
-      authSchema.parse({ email });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast.error(error.errors[0].message);
-        return;
-      }
+
+    const parsed = loginSchema.safeParse({ email, password });
+    if (!parsed.success) {
+      toast.error(parsed.error.errors[0].message);
+      return;
     }
 
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithOtp({
+    const { error } = await supabase.auth.signInWithPassword({
       email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/`,
-      },
+      password,
     });
 
     setLoading(false);
@@ -137,56 +136,13 @@ const Auth = () => {
       return;
     }
 
-    setEmailSent(true);
-    toast.success('Check your email for the login link!');
+    toast.success('Signed in successfully');
   };
-
-  if (emailSent) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-        <Logo size="xl" className="mb-8" />
-        
-        <div className="w-full max-w-md bg-card p-8 rounded-lg shadow-lg text-center">
-          <div className="mb-6 flex justify-center">
-            <div className="rounded-full bg-primary/10 p-4">
-              <Mail className="h-12 w-12 text-primary" />
-            </div>
-          </div>
-          
-          <h2 className="text-2xl font-bold text-foreground mb-4">
-            Check Your Email
-          </h2>
-          
-          <p className="text-foreground mb-6">
-            We've sent a login link to <strong>{email}</strong>. 
-            Click the link in your email to sign in.
-          </p>
-          
-          <p className="text-sm text-muted-foreground mb-6">
-            Don't see it? Check your spam folder or wait a minute for it to arrive.
-          </p>
-          
-          <Button
-            variant="outline"
-            onClick={() => {
-              setEmailSent(false);
-              setEmail('');
-              setFullName('');
-              setMobileNumber('');
-            }}
-            className="w-full"
-          >
-            Back to Login
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       <Logo size="xl" className="mb-8" />
-      
+
       <div className="w-full max-w-md bg-card p-8 rounded-lg shadow-lg">
         <div className="mb-6 p-4 bg-accent/50 rounded-md">
           <p className="text-sm text-foreground font-medium">
@@ -197,11 +153,11 @@ const Auth = () => {
         <h2 className="text-2xl font-bold text-foreground mb-6">
           {isSignup ? 'Create Account' : 'Sign In'}
         </h2>
-        
+
         <p className="text-sm text-muted-foreground mb-6">
-          {isSignup 
-            ? 'Enter your details and we\'ll send you a login link to get started.' 
-            : 'Enter your email and we\'ll send you a login link to sign in.'}
+          {isSignup
+            ? 'Enter your details and create a password to get started.'
+            : 'Enter your email and password to sign in.'}
         </p>
 
         <form onSubmit={isSignup ? handleSignup : handleLogin} className="space-y-4">
@@ -218,12 +174,7 @@ const Auth = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="mobileNumber">
-                  Mobile Number
-                  <span className="text-xs text-muted-foreground ml-2">
-                    (For records only, no OTP sent)
-                  </span>
-                </Label>
+                <Label htmlFor="mobileNumber">Mobile Number</Label>
                 <Input
                   id="mobileNumber"
                   type="tel"
@@ -235,7 +186,7 @@ const Auth = () => {
               </div>
             </>
           )}
-          
+
           <div>
             <Label htmlFor="email">Email Address</Label>
             <Input
@@ -247,25 +198,29 @@ const Auth = () => {
             />
           </div>
 
-          {!isAdminAutofill && (
-            <Button
-              type="submit"
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-              disabled={loading}
-            >
-              {loading ? 'Sending...' : 'Send Login Link'}
-            </Button>
-          )}
+          <div>
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder={isSignup ? 'At least 8 characters' : ''}
+              required
+            />
+          </div>
 
-          {isAdminAutofill && (
-            <Button
-              type="submit"
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-              disabled={loading}
-            >
-              {loading ? 'Signing in...' : 'Continue as Admin'}
-            </Button>
-          )}
+          <Button
+            type="submit"
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+            disabled={loading}
+          >
+            {loading
+              ? (isSignup ? 'Creating account...' : 'Signing in...')
+              : isAdminAutofill
+                ? 'Continue as Admin'
+                : (isSignup ? 'Create Account' : 'Sign In')}
+          </Button>
         </form>
 
         <div className="mt-6 flex flex-col gap-2">
@@ -285,20 +240,13 @@ const Auth = () => {
               setFullName('');
               setEmail('');
               setMobileNumber('');
+              setPassword('');
             }}
             className="w-full"
           >
             {isSignup ? 'Already have an account? Sign In' : 'New here? Create Account'}
           </Button>
         </div>
-        
-        {isSignup && (
-          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md">
-            <p className="text-xs text-foreground">
-              <strong>Note:</strong> We use passwordless authentication. You'll receive a secure login link via email to sign in.
-            </p>
-          </div>
-        )}
       </div>
     </div>
   );
