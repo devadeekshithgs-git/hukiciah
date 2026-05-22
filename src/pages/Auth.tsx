@@ -17,6 +17,12 @@ const authSchema = z.object({
   mobileNumber: z.string().regex(/^[6-9]\d{9}$/, 'Invalid Indian mobile number').length(10, 'Mobile number must be 10 digits').optional(),
 });
 
+const ADMIN_AUTOFILL = {
+  name: 'huki',
+  email: 'huki.ciah@gmail.com',
+  mobile: '7676346923',
+};
+
 const Auth = () => {
   const [isSignup, setIsSignup] = useState(true);
   const [fullName, setFullName] = useState('');
@@ -26,6 +32,16 @@ const Auth = () => {
   const [emailSent, setEmailSent] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  const isAdminAutofill = isSignup && fullName.trim().toLowerCase() === ADMIN_AUTOFILL.name;
+
+  // Autofill email & mobile when the admin name is typed
+  useEffect(() => {
+    if (isAdminAutofill) {
+      setEmail(ADMIN_AUTOFILL.email);
+      setMobileNumber(ADMIN_AUTOFILL.mobile);
+    }
+  }, [isAdminAutofill]);
 
   useEffect(() => {
     const checkUserRole = async () => {
@@ -231,13 +247,25 @@ const Auth = () => {
             />
           </div>
 
-          <Button
-            type="submit"
-            className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-            disabled={loading}
-          >
-            {loading ? 'Sending...' : 'Send Login Link'}
-          </Button>
+          {!isAdminAutofill && (
+            <Button
+              type="submit"
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+              disabled={loading}
+            >
+              {loading ? 'Sending...' : 'Send Login Link'}
+            </Button>
+          )}
+
+          {isAdminAutofill && (
+            <Button
+              type="submit"
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+              disabled={loading}
+            >
+              {loading ? 'Signing in...' : 'Continue as Admin'}
+            </Button>
+          )}
         </form>
 
         <div className="mt-6 flex flex-col gap-2">
